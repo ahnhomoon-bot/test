@@ -12,12 +12,10 @@
         .view { display: none; width: 100%; height: 100%; flex-direction: column; overflow-y: auto; padding-bottom: 20px; }
         .view.active { display: flex; }
 
-        /* API 키 입력 바 */
         .api-key-bar { position: absolute; top: 0; left: 0; width: 100%; background: #222; padding: 10px; display: flex; justify-content: center; gap: 10px; z-index: 200; border-bottom: 1px solid #333; }
         .api-key-bar input { padding: 5px 10px; width: 60%; max-width: 250px; background: #333; border: 1px solid #555; color: white; border-radius: 4px; font-size: 0.9rem; }
         .api-key-bar button { padding: 5px 15px; background: #4CAF50; border: none; color: white; border-radius: 4px; cursor: pointer; white-space: nowrap; }
 
-        /* 📸 분할된 카메라 뷰 (스마트폰 호환성 극대화) */
         #view-camera { padding-top: 45px; flex-direction: column; overflow: hidden; }
         
         .camera-wrapper { position: relative; width: 100%; height: 45%; background: #000; flex-shrink: 0; }
@@ -32,7 +30,6 @@
         
         .warning-text { color: #ff5252; font-weight: bold; background: rgba(255, 82, 82, 0.15); padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 5px; border: 1px solid rgba(255, 82, 82, 0.3); }
 
-        /* 검색 뷰 */
         #view-search { align-items: center; padding-top: 60px; }
         .search-container { width: 90%; max-width: 800px; margin-top: 20px; }
         .search-input { width: 100%; padding: 18px 24px; border-radius: 30px; border: 2px solid #333; font-size: 1rem; background: #252525; color: white; outline: none; }
@@ -50,14 +47,12 @@
         .btn-star { background: none; border: none; font-size: 1.8rem; color: #555; cursor: pointer; }
         .btn-star.saved { color: #ffd700; }
 
-        /* 즐겨찾기 뷰 */
         #view-favorites { align-items: center; padding-top: 60px; }
         .fav-header { width: 90%; max-width: 800px; margin-top: 10px; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
         .fav-list { width: 90%; max-width: 800px; display: flex; flex-direction: column; gap: 15px; }
         .fav-item { background: #2a2a2a; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #4CAF50; }
         .fav-item .btn-remove { background: #ff5252; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
 
-        /* 하단 네비게이션 바 */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: #1a1a1a; display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.5); z-index: 100; border-top: 1px solid #333; }
         .nav-item { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #888; text-decoration: none; cursor: pointer; }
         .nav-item span { font-size: 0.8rem; margin-top: 5px; font-weight: bold; }
@@ -66,7 +61,6 @@
 
         .loading { display: none; color: #4CAF50; font-weight: bold; margin-top: 10px; text-align: center; }
 
-        /* 💻 태블릿 및 PC 화면 반응형 처리 (화면을 좌우로 분할) */
         @media (min-width: 768px) {
             #view-camera { flex-direction: row; align-items: stretch; }
             .camera-wrapper { width: 50%; height: calc(100vh - 115px); }
@@ -77,7 +71,7 @@
 <body>
 
 <div class="api-key-bar">
-    <input type="password" id="api-key-input" placeholder="Google AI Key (AIza...)">
+    <input type="password" id="api-key-input" placeholder="새 API Key 입력 (AIza...)">
     <button onclick="saveApiKey()">키 저장</button>
 </div>
 
@@ -90,7 +84,7 @@
         </div>
         
         <div class="top-info-panel">
-            <div id="camera-loading" class="loading">Gemini AI가 약품을 분석하는 중... 🧠</div>
+            <div id="camera-loading" class="loading">Gemini AI가 모델을 찾고 분석하는 중... 🧠</div>
             <div class="info-box">
                 <h3>💊 인식 결과</h3>
                 <p id="cam-res-name" style="color:#aaa;">카메라를 약품에 맞추고 위의 버튼을 누르세요.</p>
@@ -160,7 +154,7 @@
     function saveApiKey() {
         const key = document.getElementById('api-key-input').value.trim();
         localStorage.setItem('gemini_api_key', key);
-        alert('API Key가 브라우저에 안전하게 저장되었습니다.');
+        alert('API Key가 안전하게 저장되었습니다.');
     }
     
     function getApiKey() {
@@ -201,8 +195,8 @@
       "contraindications": ["함께 복용 시 부작용을 일으키거나 금기되는 약품 혹은 성분 리스트 1", "리스트 2"]
     }`;
 
-    // 해결 1: 최신 모델 이름 적용 (gemini-1.5-flash-latest)
-    const MODEL_NAME = "gemini-1.5-flash-latest";
+    // 해결: latest 꼬리표를 제거하고, 구글이 가장 확실하게 열어둔 정식 모델명 적용
+    const MODEL_NAME = "gemini-1.5-flash";
 
     async function analyzeImageWithAI() {
         const apiKey = getApiKey();
@@ -250,7 +244,7 @@
             const drugInfo = JSON.parse(jsonMatch[0]);
             displayData('cam', drugInfo);
         } catch (err) {
-            alert("AI 분석 실패 원인: " + err.message);
+            alert("분석 실패 (결과값을 읽지 못함): " + err.message);
         } finally {
             document.getElementById('camera-loading').style.display = 'none';
             document.getElementById('capture-btn').disabled = false;
