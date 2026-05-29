@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트 의약품 AR (V3)</title>
+    <title>스마트 의약품 AR (V4)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html { width: 100%; height: 100%; font-family: -apple-system, sans-serif; background-color: #121212; color: #fff; overflow: hidden; }
@@ -21,7 +21,7 @@
         .camera-wrapper { position: relative; width: 100%; height: 45%; background: #000; flex-shrink: 0; }
         #video-element { width: 100%; height: 100%; object-fit: cover; }
         
-        .ai-capture-btn { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 10; padding: 12px 24px; background: #ffeb3b; color: #000; border: none; border-radius: 30px; font-weight: bold; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); white-space: nowrap; }
+        .ai-capture-btn { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 10; padding: 12px 24px; background: #03a9f4; color: #fff; border: none; border-radius: 30px; font-weight: bold; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); white-space: nowrap; }
         .ai-capture-btn:disabled { background: #555; cursor: not-allowed; }
 
         .top-info-panel { width: 100%; height: 55%; padding: 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; background: #121212; }
@@ -71,7 +71,7 @@
 <body>
 
 <div class="api-key-bar">
-    <input type="password" id="api-key-input" placeholder="새 API Key 입력 (AIza...)">
+    <input type="password" id="api-key-input" placeholder="발급받은 API Key 입력">
     <button onclick="saveApiKey()">키 저장</button>
 </div>
 
@@ -79,14 +79,14 @@
     <div id="view-camera" class="view active">
         <div class="camera-wrapper">
             <video id="video-element" autoplay playsinline muted></video>
-            <button id="capture-btn" class="ai-capture-btn" onclick="analyzeImageWithAI()">📷 약품 인식하기 (V3버전 테스트)</button>
+            <button id="capture-btn" class="ai-capture-btn" onclick="analyzeImageWithAI()">📷 약품 인식하기 (V4 최종)</button>
         </div>
         
         <div class="top-info-panel">
-            <div id="camera-loading" class="loading">Gemini AI 작동 중... 🧠</div>
+            <div id="camera-loading" class="loading">최신 AI 모델로 분석 중... 🧠</div>
             <div class="info-box">
-                <h3 style="color:#ffeb3b;">💊 인식 결과 (V3 업데이트 됨)</h3>
-                <p id="cam-res-name" style="color:#aaa;">카메라를 약품에 맞추고 위의 노란 버튼을 누르세요.</p>
+                <h3 style="color:#03a9f4;">💊 인식 결과 (V4)</h3>
+                <p id="cam-res-name" style="color:#aaa;">카메라를 약품에 맞추고 위의 파란 버튼을 누르세요.</p>
             </div>
             <div class="info-box">
                 <h3>📖 의료 매뉴얼<button class="btn-star" id="cam-star" onclick="toggleFavoriteFromCurrent('cam')">☆</button></h3>
@@ -99,7 +99,7 @@
         <div class="search-container">
             <input type="text" id="search-input" class="search-input" placeholder="약품명, 성분명 등 입력 후 엔터" onkeypress="handleSearch(event)">
         </div>
-        <div id="search-loading" class="loading">Gemini AI가 정보를 조회하는 중... 🔍</div>
+        <div id="search-loading" class="loading">최신 AI 모델로 조회 중... 🔍</div>
 
         <div class="content-card" id="search-result" style="display:none;">
             <h2>
@@ -173,7 +173,35 @@
     형식:
     { "name": "약품명", "category": "효능 분류", "efficacy": "핵심 효능", "usage": "용법", "warning": "주의사항", "contraindications": ["금기 약품"] }`;
 
-    const MODEL_NAME = "gemini-1.5-flash";
+    // 💡 해결의 핵심: 죽은 1.5 모델을 버리고, 살아있는 2.5/2.0 최신 모델을 알아서 찾아가는 자동 탐색 엔진
+    async function fetchWithFallback(payload) {
+        const apiKey = getApiKey();
+        // 최신 버전부터 찔러보고, 없으면 다음 버전으로 부드럽게 넘어갑니다.
+        const activeModels = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-3.0-flash"];
+        let lastError = "";
+
+        for (let model of activeModels) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            try {
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const result = await response.json();
+                
+                if (result.error) {
+                    if (result.error.code === 404 || result.error.message.includes("not found")) {
+                        console.log(`${model} 모델 없음. 다음 최신 모델 시도 중...`);
+                        lastError = result.error.message;
+                        continue; // 현재 모델이 구글 창고에 없으면, 에러를 내지 않고 바로 다음 모델을 찾으러 갑니다!
+                    } else {
+                        throw new Error(result.error.message);
+                    }
+                }
+                return result; // 모델이 정상 작동하면 결과물 리턴!
+            } catch (e) {
+                if (model === activeModels[activeModels.length - 1]) throw e;
+            }
+        }
+        throw new Error("활성화된 최신 모델을 찾지 못했습니다. API 키 문제일 수 있습니다: " + lastError);
+    }
 
     async function analyzeImageWithAI() {
         const apiKey = getApiKey();
@@ -189,34 +217,52 @@
         ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
         
         const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
         const payload = {
             contents: [{ parts: [ { text: "이 이미지 속 의약품을 인식해서 정보를 제공해줘. " + systemPrompt }, { inlineData: { mimeType: "image/jpeg", data: base64Image } } ] }]
         };
 
         try {
-            const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const result = await response.json();
-            
-            if (result.error) {
-                // 표식 3: 에러 메시지에도 V3 추가
-                alert(`[V3 에러확인] 구글 AI가 거부했습니다: ${result.error.message}`);
-                return;
-            }
-            
+            const result = await fetchWithFallback(payload);
             const aiText = result.candidates[0].content.parts[0].text.trim();
             const jsonMatch = aiText.match(/\{[\s\S]*\}/);
             const drugInfo = JSON.parse(jsonMatch[0]);
             displayData('cam', drugInfo);
         } catch (err) {
-            alert("[V3 에러확인] 분석 실패: " + err.message);
+            alert("[V4 오류] 분석 실패: " + err.message);
         } finally {
             document.getElementById('camera-loading').style.display = 'none';
             document.getElementById('capture-btn').disabled = false;
         }
     }
 
-    // 생략된 함수들 (표시에 영향을 주지 않는 검색/출력 함수)은 글자수 제한으로 축약했습니다만 작동에는 문제없습니다.
+    async function handleSearch(event) {
+        if (event.key !== 'Enter') return;
+        const apiKey = getApiKey();
+        if(!apiKey) return alert('상단에 Google AI API Key를 저장해주세요.');
+
+        const query = document.getElementById('search-input').value;
+        if(!query.trim()) return;
+
+        document.getElementById('search-loading').style.display = 'block';
+        document.getElementById('search-result').style.display = 'none';
+
+        const payload = {
+            contents: [{ parts: [{ text: `'${query}' 에 대한 정보를 찾아줘. ` + systemPrompt }] }]
+        };
+
+        try {
+            const result = await fetchWithFallback(payload);
+            const aiText = result.candidates[0].content.parts[0].text.trim();
+            const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+            const drugInfo = JSON.parse(jsonMatch[0]);
+            displayData('search', drugInfo);
+        } catch (err) {
+            alert("[V4 검색 오류]: " + err.message);
+        } finally {
+            document.getElementById('search-loading').style.display = 'none';
+        }
+    }
+
     function displayData(type, info) {
         currentData = { name: info.name, desc: info.category };
         let contrasHTML = '';
@@ -231,10 +277,69 @@
             <div class="warning-text">⚠️ 알레르기 및 주의사항:<br>${info.warning}</div>
             <div class="contra-section"><h4>⛔ 함께 복용 금기 의약품</h4><ul class="contra-list">${contrasHTML}</ul></div>
         `;
-        document.getElementById('cam-res-name').innerHTML = `<strong>${info.name}</strong><br><span style="font-size:0.9rem; color:#aaa;">${info.category}</span>`;
-        document.getElementById('cam-res-manual').innerHTML = htmlContent;
+        
+        if(type === 'cam') {
+            document.getElementById('cam-res-name').innerHTML = `<strong>${info.name}</strong><br><span style="font-size:0.9rem; color:#aaa;">${info.category}</span>`;
+            document.getElementById('cam-res-manual').innerHTML = htmlContent;
+            document.getElementById('cam-star').innerText = checkSaved(info.name) ? "★" : "☆";
+            document.getElementById('cam-star').className = checkSaved(info.name) ? "btn-star saved" : "btn-star";
+        } else {
+            document.getElementById('search-res-title').innerText = info.name;
+            document.getElementById('search-res-manual').innerHTML = htmlContent;
+            document.getElementById('search-star').innerText = checkSaved(info.name) ? "★" : "☆";
+            document.getElementById('search-star').className = checkSaved(info.name) ? "btn-star saved" : "btn-star";
+            document.getElementById('search-result').style.display = 'block';
+        }
     }
-    // 즐겨찾기 기능은 생략
+
+    function getFavorites() { return JSON.parse(localStorage.getItem('med_favorites')) || []; }
+    function checkSaved(name) { return getFavorites().some(item => item.name === name); }
+    function toggleFavoriteFromCurrent(type) {
+        if(!currentData.name) return;
+        toggleFavorite(currentData.name, currentData.desc, document.getElementById(`${type}-star`));
+    }
+    function toggleFavorite(name, desc, btnElement) {
+        let favorites = getFavorites();
+        const exists = favorites.findIndex(item => item.name === name);
+        if (exists > -1) {
+            favorites.splice(exists, 1);
+            btnElement.classList.remove('saved');
+            btnElement.innerText = "☆";
+        } else {
+            favorites.push({ name: name, desc: desc });
+            btnElement.classList.add('saved');
+            btnElement.innerText = "★";
+        }
+        localStorage.setItem('med_favorites', JSON.stringify(favorites));
+    }
+    function renderFavorites() {
+        const container = document.getElementById('fav-list-container');
+        const favorites = getFavorites();
+        container.innerHTML = '';
+        if(favorites.length === 0) {
+            container.innerHTML = '<p style="color:#aaa; text-align:center; margin-top:20px;">저장된 의약품이 없습니다.</p>';
+            return;
+        }
+        favorites.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'fav-item';
+            div.innerHTML = `
+                <div><h3>${item.name}</h3><p style="color:#aaa; font-size:0.9rem;">${item.desc}</p></div>
+                <button class="btn-remove" onclick="removeFavorite('${item.name}')">삭제</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+    function removeFavorite(name) {
+        let favorites = getFavorites();
+        favorites = favorites.filter(item => item.name !== name);
+        localStorage.setItem('med_favorites', JSON.stringify(favorites));
+        renderFavorites();
+        if(currentData.name === name) {
+            if(document.getElementById('cam-star')) document.getElementById('cam-star').innerText = "☆";
+            if(document.getElementById('search-star')) document.getElementById('search-star').innerText = "☆";
+        }
+    }
 </script>
 </body>
 </html>
