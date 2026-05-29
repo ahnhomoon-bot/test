@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트 의약품 AR 도우미 (최종 완성본)</title>
+    <title>스마트 의약품 AR 도우미 (최종 마스터본)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html { width: 100%; height: 100%; font-family: -apple-system, sans-serif; background-color: #121212; color: #fff; overflow: hidden; }
@@ -18,7 +18,7 @@
         .key-row input { padding: 8px 12px; width: 60%; max-width: 250px; background: #333; border: 1px solid #555; color: white; border-radius: 20px; font-size: 0.9rem; outline: none; }
         .key-row button { padding: 8px 15px; background: #4CAF50; border: none; color: white; border-radius: 20px; cursor: pointer; white-space: nowrap; font-weight: bold; }
         
-        /* 🔊 음성 속도 조절 영역 스타일 */
+        /* 음성 속도 조절 영역 */
         .speed-row { display: flex; align-items: center; gap: 10px; justify-content: center; width: 100%; font-size: 0.85rem; color: #aaa; }
         .speed-row input[type="range"] { width: 120px; accent-color: #4CAF50; cursor: pointer; }
 
@@ -33,7 +33,10 @@
 
         .top-info-panel { width: 100%; height: 60%; padding: 35px 15px 15px 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; background: #121212; }
         .info-box { background: #1e1e1e; padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
-        .info-box h3 { font-size: 1.2rem; color: #4CAF50; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; gap: 10px; }
+        
+        /* 헤더(제목과 버튼들) 정렬 통일 */
+        .box-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 12px; gap: 10px; }
+        .box-header h3, .box-header h2 { font-size: 1.2rem; color: #4CAF50; margin: 0; }
         
         .warning-text { color: #ff5252; font-weight: bold; background: rgba(255, 82, 82, 0.1); padding: 8px 12px; border-radius: 8px; display: block; margin-top: 10px; border: 1px solid rgba(255, 82, 82, 0.3); line-height: 1.5; }
 
@@ -43,7 +46,6 @@
         .search-input:focus { border-color: #4CAF50; box-shadow: 0 0 10px rgba(76, 175, 80, 0.2); }
 
         .content-card { width: 90%; max-width: 800px; background: #1e1e1e; border-radius: 16px; padding: 25px; margin-top: 20px; border: 1px solid rgba(255,255,255,0.05); }
-        .content-card h2 { color: #4CAF50; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; }
         .content-card p { line-height: 1.6; color: #ddd; margin-bottom: 12px; white-space: pre-wrap; }
         
         .contra-section { margin-top: 20px; padding-top: 20px; border-top: 1px dashed #555; }
@@ -51,6 +53,7 @@
         .contra-list { list-style: none; padding: 0; }
         .contra-list li { background: rgba(255, 152, 0, 0.1); color: #ffb74d; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; font-size: 0.95rem; border: 1px solid rgba(255, 152, 0, 0.2); line-height: 1.4; }
 
+        /* 음성 및 즐겨찾기 버튼 */
         .btn-group { display: flex; gap: 10px; align-items: center; }
         .btn-star { background: none; border: none; font-size: 2rem; color: #555; cursor: pointer; transition: 0.2s; }
         .btn-star.saved { color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
@@ -107,17 +110,19 @@
         <div class="top-info-panel">
             <div id="camera-loading" class="loading">최적의 AI 모델을 찾아 약품을 분석 중입니다... 🧠</div>
             <div class="info-box">
-                <h3 style="color:#03a9f4;">💊 인식 약품 정보</h3>
+                <div class="box-header">
+                    <h3 style="color:#03a9f4;">💊 인식 약품 정보</h3>
+                </div>
                 <p id="cam-res-name" style="color:#aaa;">카메라를 약품에 맞추고 중앙의 파란 버튼을 누르세요.</p>
             </div>
             <div class="info-box">
-                <h3>
-                    📖 상세 의료 매뉴얼
+                <div class="box-header">
+                    <h3>📖 상세 의료 매뉴얼</h3>
                     <div class="btn-group">
                         <button class="btn-tts" onclick="speakCurrentInfo()">🔊 듣기</button>
                         <button class="btn-star" id="cam-star" onclick="toggleFavoriteFromCurrent('cam')">☆</button>
                     </div>
-                </h3>
+                </div>
                 <div id="cam-res-manual" style="color:#aaa;">인식 대기 중...</div>
             </div>
         </div>
@@ -130,13 +135,13 @@
         <div id="search-loading" class="loading">의약품 정보를 조회하고 있습니다... 🔍</div>
 
         <div class="content-card" id="search-result" style="display:none;">
-            <h2>
-                <span id="search-res-title">약품명</span>
+            <div class="box-header">
+                <h2 id="search-res-title">약품명</h2>
                 <div class="btn-group">
                     <button class="btn-tts" onclick="speakCurrentInfo()">🔊 듣기</button>
                     <button class="btn-star" id="search-star" onclick="toggleFavoriteFromCurrent('search')">☆</button>
                 </div>
-            </h2>
+            </div>
             <div id="search-res-manual"></div>
         </div>
     </div>
@@ -341,7 +346,7 @@
         }
     }
 
-    // 🔊 음성 속도 동적 반영 기능 완료!
+    // 🔊 음성 읽어주기
     function speakCurrentInfo() {
         if (!currentJsonInfo || !currentJsonInfo.name) return alert("읽어드릴 의약품 정보가 없습니다.");
         window.speechSynthesis.cancel();
@@ -354,7 +359,6 @@
         const utterance = new SpeechSynthesisUtterance(speechText);
         utterance.lang = 'ko-KR';
         
-        // 💡 사용자가 조절 바에서 지정한 속도 값을 실시간으로 읽어와 주입합니다!
         const selectedSpeed = parseFloat(document.getElementById('tts-speed').value);
         utterance.rate = selectedSpeed; 
         
