@@ -8,39 +8,29 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html { width: 100%; height: 100%; font-family: -apple-system, sans-serif; background-color: #121212; color: #fff; overflow: hidden; }
         
-        /* 앱 전체 컨테이너 (하단 바 공간 70px 제외) */
         .app-container { position: relative; width: 100%; height: calc(100% - 70px); }
-        
-        /* 각 화면(뷰) 공통 설정 */
         .view { display: none; width: 100%; height: 100%; flex-direction: column; overflow-y: auto; padding-bottom: 20px; }
         .view.active { display: flex; }
 
-        /* API 키 입력 바 */
         .api-key-bar { position: absolute; top: 0; left: 0; width: 100%; background: rgba(34, 34, 34, 0.9); padding: 10px; display: flex; justify-content: center; gap: 10px; z-index: 200; border-bottom: 1px solid #333; backdrop-filter: blur(5px); }
         .api-key-bar input { padding: 8px 12px; width: 60%; max-width: 250px; background: #333; border: 1px solid #555; color: white; border-radius: 20px; font-size: 0.9rem; outline: none; }
         .api-key-bar button { padding: 8px 15px; background: #4CAF50; border: none; color: white; border-radius: 20px; cursor: pointer; white-space: nowrap; font-weight: bold; }
 
-        /* 📸 1. 카메라 뷰 (화면 분할 구조) */
         #view-camera { padding-top: 55px; flex-direction: column; overflow: hidden; }
         
-        /* 상단: 카메라 영역 */
         .camera-wrapper { position: relative; width: 100%; height: 40%; background: #000; flex-shrink: 0; border-bottom: 2px solid #333; }
         #video-element { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 원 형태를 띈 중앙 캡처 버튼 */
         .ai-capture-btn { position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); z-index: 10; padding: 15px 30px; background: #03a9f4; color: #fff; border: none; border-radius: 50px; font-weight: bold; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(3, 169, 244, 0.5); white-space: nowrap; transition: 0.2s; border: 2px solid #fff; }
         .ai-capture-btn:active { transform: translate(-50%, 5px); }
         .ai-capture-btn:disabled { background: #555; box-shadow: none; cursor: not-allowed; border-color: #777; }
 
-        /* 하단: 인식 결과 및 의료 매뉴얼 영역 */
         .top-info-panel { width: 100%; height: 60%; padding: 35px 15px 15px 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; background: #121212; }
         .info-box { background: #1e1e1e; padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
-        .info-box h3 { font-size: 1.2rem; color: #4CAF50; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .info-box h3 { font-size: 1.2rem; color: #4CAF50; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; gap: 10px; }
         
-        /* 알레르기 및 주의사항 강조 (빨간/주황색) */
         .warning-text { color: #ff5252; font-weight: bold; background: rgba(255, 82, 82, 0.1); padding: 8px 12px; border-radius: 8px; display: block; margin-top: 10px; border: 1px solid rgba(255, 82, 82, 0.3); line-height: 1.5; }
 
-        /* 🔍 2. 검색 뷰 */
         #view-search { align-items: center; padding-top: 70px; }
         .search-container { width: 90%; max-width: 800px; margin-top: 20px; }
         .search-input { width: 100%; padding: 18px 24px; border-radius: 30px; border: 2px solid #333; font-size: 1rem; background: #252525; color: white; outline: none; transition: 0.3s; }
@@ -50,33 +40,36 @@
         .content-card h2 { color: #4CAF50; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; }
         .content-card p { line-height: 1.6; color: #ddd; margin-bottom: 12px; white-space: pre-wrap; }
         
-        /* 병용 금기 영역 */
         .contra-section { margin-top: 20px; padding-top: 20px; border-top: 1px dashed #555; }
         .contra-section h4 { color: #ff9800; margin-bottom: 12px; font-size: 1.1rem; display: flex; align-items: center; gap: 5px; }
         .contra-list { list-style: none; padding: 0; }
         .contra-list li { background: rgba(255, 152, 0, 0.1); color: #ffb74d; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; font-size: 0.95rem; border: 1px solid rgba(255, 152, 0, 0.2); line-height: 1.4; }
 
-        /* 즐겨찾기 (별 아이콘) */
+        /* 즐겨찾기 및 음성 버튼 설정 */
+        .btn-group { display: flex; gap: 10px; align-items: center; }
         .btn-star { background: none; border: none; font-size: 2rem; color: #555; cursor: pointer; transition: 0.2s; }
         .btn-star.saved { color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+        .btn-tts { background: #4CAF50; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .btn-tts:active { background: #388E3C; }
 
-        /* ⭐ 3. 즐겨찾기 뷰 */
         #view-favorites { align-items: center; padding-top: 70px; }
         .fav-header { width: 90%; max-width: 800px; margin-top: 10px; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
         .fav-list { width: 90%; max-width: 800px; display: flex; flex-direction: column; gap: 15px; }
-        .fav-item { background: #2a2a2a; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #4CAF50; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        /* 즐겨찾기 아이템을 누르면 클릭 효과가 나타나도록 수정 */
+        .fav-item { background: #2a2a2a; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #4CAF50; box-shadow: 0 4px 6px rgba(0,0,0,0.3); overflow: hidden; }
+        .fav-item-content { flex: 1; padding: 20px; cursor: pointer; transition: background 0.2s; }
+        .fav-item-content:hover { background: #333; }
+        .fav-item-actions { padding: 20px; }
         .fav-item .btn-remove { background: #ff5252; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; }
 
-        /* 하단 내비게이션 바 (3버튼 완벽 복구) */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: #1a1a1a; display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -5px 15px rgba(0,0,0,0.5); z-index: 100; border-top: 1px solid #333; }
         .nav-item { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #888; text-decoration: none; cursor: pointer; transition: 0.3s; }
         .nav-item span { font-size: 0.8rem; margin-top: 5px; font-weight: bold; }
         .nav-item svg { width: 26px; height: 26px; fill: currentColor; }
-        .nav-item.active { color: #03a9f4; } /* 활성화 시 포인트 색상 */
+        .nav-item.active { color: #03a9f4; }
 
         .loading { display: none; color: #03a9f4; font-weight: bold; margin-top: 10px; text-align: center; padding: 10px; background: rgba(3, 169, 244, 0.1); border-radius: 8px; }
 
-        /* 💻 태블릿/PC 반응형 (화면 좌우 분할) */
         @media (min-width: 768px) {
             #view-camera { flex-direction: row; align-items: stretch; padding-top: 55px; }
             .camera-wrapper { width: 50%; height: 100%; border-bottom: none; border-right: 2px solid #333; }
@@ -107,7 +100,13 @@
                 <p id="cam-res-name" style="color:#aaa;">카메라를 약품에 맞추고 중앙의 파란 버튼을 누르세요.</p>
             </div>
             <div class="info-box">
-                <h3>📖 상세 의료 매뉴얼<button class="btn-star" id="cam-star" onclick="toggleFavoriteFromCurrent('cam')">☆</button></h3>
+                <h3>
+                    📖 상세 의료 매뉴얼
+                    <div class="btn-group">
+                        <button class="btn-tts" onclick="speakCurrentInfo()">🔊 듣기</button>
+                        <button class="btn-star" id="cam-star" onclick="toggleFavoriteFromCurrent('cam')">☆</button>
+                    </div>
+                </h3>
                 <div id="cam-res-manual" style="color:#aaa;">인식 대기 중...</div>
             </div>
         </div>
@@ -115,14 +114,17 @@
     
     <div id="view-search" class="view">
         <div class="search-container">
-            <input type="text" id="search-input" class="search-input" placeholder="약품명, 성분명, 증상 입력 후 엔터키 (예: 타이레놀)" onkeypress="handleSearch(event)">
+            <input type="text" id="search-input" class="search-input" placeholder="약품명, 성분명, 증상 입력 후 엔터 (예: 타이레놀)" onkeypress="handleSearch(event)">
         </div>
         <div id="search-loading" class="loading">의약품 정보를 조회하고 있습니다... 🔍</div>
 
         <div class="content-card" id="search-result" style="display:none;">
             <h2>
                 <span id="search-res-title">약품명</span>
-                <button class="btn-star" id="search-star" onclick="toggleFavoriteFromCurrent('search')">☆</button>
+                <div class="btn-group">
+                    <button class="btn-tts" onclick="speakCurrentInfo()">🔊 듣기</button>
+                    <button class="btn-star" id="search-star" onclick="toggleFavoriteFromCurrent('search')">☆</button>
+                </div>
             </h2>
             <div id="search-res-manual"></div>
         </div>
@@ -130,7 +132,8 @@
 
     <div id="view-favorites" class="view">
         <div class="fav-header">
-            <h2 style="color:#ffd700;">⭐ 내 즐겨찾기 의약품 저장소</h2>
+            <h2 style="color:#ffd700;">⭐ 내 즐겨찾기 저장소</h2>
+            <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">목록을 터치하면 상세 정보를 다시 검색합니다.</p>
         </div>
         <div class="fav-list" id="fav-list-container"></div>
     </div>
@@ -138,15 +141,15 @@
 </div>
 
 <nav class="bottom-nav">
-    <div class="nav-item active" onclick="navigate('camera', this)">
+    <div class="nav-item active" onclick="navigate('camera', this)" id="nav-camera">
         <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
         <span>카메라</span>
     </div>
-    <div class="nav-item" onclick="navigate('search', this)">
+    <div class="nav-item" onclick="navigate('search', this)" id="nav-search">
         <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         <span>검색</span>
     </div>
-    <div class="nav-item" onclick="navigate('favorites', this)">
+    <div class="nav-item" onclick="navigate('favorites', this)" id="nav-fav">
         <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
         <span>즐겨찾기</span>
     </div>
@@ -155,15 +158,15 @@
 <canvas id="hidden-canvas" style="display:none;"></canvas>
 
 <script>
-    // 현재 표시 중인 약품 데이터 임시 저장용
+    // 현재 표시 중인 약품 데이터 (즐겨찾기 및 음성지원용)
     let currentData = { name: '', desc: '' };
+    let currentJsonInfo = null; // 음성 읽기를 위한 원본 JSON 저장
 
-    // 화면 로드 시 초기화
     window.onload = function() {
         const savedKey = localStorage.getItem('gemini_api_key');
         if(savedKey) { document.getElementById('api-key-input').value = savedKey; }
         startCamera();
-        renderFavorites(); // 앱 시작 시 즐겨찾기 목록 불러오기
+        renderFavorites();
     }
     
     function saveApiKey() {
@@ -174,16 +177,18 @@
     
     function getApiKey() { return localStorage.getItem('gemini_api_key'); }
 
-    // 부드러운 화면 전환 (라우팅)
+    // 화면 전환 라우팅 로직 (전환 시 음성 중단 처리 포함)
     function navigate(viewName, element) {
+        // 탭 이동 시 읽어주던 음성이 있다면 즉시 중단
+        window.speechSynthesis.cancel(); 
+
         document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
         document.getElementById(`view-${viewName}`).classList.add('active');
         document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
         element.classList.add('active');
-        if(viewName === 'favorites') renderFavorites(); // 즐겨찾기 화면 전환 시 데이터 새로고침
+        if(viewName === 'favorites') renderFavorites();
     }
 
-    // 카메라 작동
     const videoElement = document.getElementById('video-element');
     async function startCamera() {
         try {
@@ -194,17 +199,15 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 videoElement.srcObject = stream;
             } catch (err2) {
-                console.error("카메라를 켤 수 없습니다.", err2);
+                console.error("카메라 권한 오류:", err2);
             }
         }
     }
 
-    // AI에게 요청할 완벽한 JSON 프롬프트 (요구사항 반영)
-    const systemPrompt = `당신은 전문 약사 AI입니다. 요청하는 의약품(마데카솔, 타이레놀, 밴드 등)을 분석하여 반드시 아래의 JSON 형식으로만 응답해주세요.
+    const systemPrompt = `당신은 전문 약사 AI입니다. 요청하는 의약품을 분석하여 반드시 아래의 JSON 형식으로만 응답해주세요.
     형식:
-    { "name": "약품명", "category": "효능 분류", "efficacy": "핵심 효능", "usage": "정확한 용법", "warning": "알레르기 반응 및 주의사항 (강조될 부분)", "contraindications": ["병용 금기 약품 1", "병용 금기 약품 2"] }`;
+    { "name": "약품명", "category": "효능 분류", "efficacy": "핵심 효능", "usage": "정확한 용법", "warning": "알레르기 반응 및 주의사항 (상세히)", "contraindications": ["병용 금기 약품 1", "병용 금기 약품 2"] }`;
 
-    // 💡 최신 모델 자동 탐색 엔진 (에러 방지)
     async function autoDetectModel(apiKey) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
         const response = await fetch(url);
@@ -225,10 +228,13 @@
         throw new Error("연결된 모델을 찾을 수 없습니다.");
     }
 
-    // 1. 이미지 AI 분석 실행 (카메라 캡처)
+    // 사진 캡처 분석
     async function analyzeImageWithAI() {
         const apiKey = getApiKey();
-        if(!apiKey) return alert('화면 최상단에 API Key를 먼저 저장해주세요.');
+        if(!apiKey) return alert('화면 상단에 API Key를 먼저 저장해주세요.');
+
+        // 분석 시작 시 기존 음성 중지
+        window.speechSynthesis.cancel();
 
         document.getElementById('camera-loading').style.display = 'block';
         document.getElementById('capture-btn').disabled = true;
@@ -258,21 +264,25 @@
             const drugInfo = JSON.parse(jsonMatch[0]);
             displayData('cam', drugInfo);
         } catch (err) {
-            alert("사진 인식 실패: " + err.message);
+            alert("사진 인식 오류: " + err.message);
         } finally {
             document.getElementById('camera-loading').style.display = 'none';
             document.getElementById('capture-btn').disabled = false;
         }
     }
 
-    // 2. 통합 검색 기능 실행 (키보드 엔터 입력 시)
+    // 텍스트 검색 기능
     async function handleSearch(event) {
-        if (event.key !== 'Enter') return;
+        // event.key가 존재하고 Enter가 아닐 경우 반환 (직접 함수 호출 시 무시되도록 처리)
+        if (event && event.key && event.key !== 'Enter') return;
+        
         const apiKey = getApiKey();
-        if(!apiKey) return alert('화면 최상단에 API Key를 먼저 저장해주세요.');
+        if(!apiKey) return alert('화면 상단에 API Key를 먼저 저장해주세요.');
 
         const query = document.getElementById('search-input').value;
         if(!query.trim()) return;
+
+        window.speechSynthesis.cancel(); // 검색 시 음성 중지
 
         document.getElementById('search-loading').style.display = 'block';
         document.getElementById('search-result').style.display = 'none';
@@ -294,48 +304,42 @@
             const drugInfo = JSON.parse(jsonMatch[0]);
             displayData('search', drugInfo);
         } catch (err) {
-            alert("검색 실패: " + err.message);
+            alert("검색 오류: " + err.message);
         } finally {
             document.getElementById('search-loading').style.display = 'none';
         }
     }
 
-    // 3. 화면에 AI 데이터 예쁘게 그려주기 (요구사항 완벽 반영)
+    // 데이터 화면 출력
     function displayData(type, info) {
         currentData = { name: info.name, desc: info.category };
+        currentJsonInfo = info; // 음성 출력을 위해 원본 저장
         
-        // 병용 금기 리스트 HTML 생성
         let contrasHTML = '';
         if(info.contraindications && info.contraindications.length > 0 && info.contraindications[0] !== "") {
             info.contraindications.forEach(c => { contrasHTML += `<li>💊 ${c}</li>`; });
         } else { contrasHTML = '<li>특이 병용 금기 사항 없음</li>'; }
 
-        // 의료 매뉴얼 HTML 조합
         const htmlContent = `
             <p style="color:#fff;"><strong>🏷️ 분류:</strong> ${info.category}</p>
             <p style="color:#fff;"><strong>✨ 효능:</strong> ${info.efficacy}</p>
             <p style="color:#fff;"><strong>🕒 용법:</strong> ${info.usage}</p>
-            
             <div class="warning-text">
                 🚨 알레르기 및 부작용 주의사항<br>
                 <span style="color:#fff; font-weight:normal;">${info.warning}</span>
             </div>
-            
             <div class="contra-section">
-                <h4>⛔ 병용 금기 및 주의 의약품 리스트</h4>
+                <h4>⛔ 병용 금기 및 주의 의약품</h4>
                 <ul class="contra-list">${contrasHTML}</ul>
             </div>
         `;
         
-        // 카메라 뷰 결과 출력
         if(type === 'cam') {
             document.getElementById('cam-res-name').innerHTML = `<strong>${info.name}</strong><br><span style="font-size:0.9rem; color:#aaa;">${info.category}</span>`;
             document.getElementById('cam-res-manual').innerHTML = htmlContent;
             document.getElementById('cam-star').innerText = checkSaved(info.name) ? "★" : "☆";
             document.getElementById('cam-star').className = checkSaved(info.name) ? "btn-star saved" : "btn-star";
-        } 
-        // 검색 뷰 결과 출력
-        else {
+        } else {
             document.getElementById('search-res-title').innerText = info.name;
             document.getElementById('search-res-manual').innerHTML = htmlContent;
             document.getElementById('search-star').innerText = checkSaved(info.name) ? "★" : "☆";
@@ -344,9 +348,35 @@
         }
     }
 
-    // 4. 즐겨찾기 로컬 스토리지 DB 관리 기능
+    // 🔊 음성 읽어주기 기능 (TTS)
+    function speakCurrentInfo() {
+        if (!currentJsonInfo || !currentJsonInfo.name) {
+            return alert("읽어드릴 의약품 정보가 없습니다.");
+        }
+
+        // 기존에 재생 중인 음성이 있다면 먼저 취소
+        window.speechSynthesis.cancel();
+
+        // 읽기 좋게 문장 조립
+        let speechText = `조회하신 약품명은 ${currentJsonInfo.name} 입니다. `;
+        speechText += `효능 및 효과는, ${currentJsonInfo.efficacy} 입니다. `;
+        speechText += `용법은, ${currentJsonInfo.usage} 입니다. `;
+        speechText += `부작용 및 주의사항 안내입니다. ${currentJsonInfo.warning} `;
+        
+        if (currentJsonInfo.contraindications && currentJsonInfo.contraindications.length > 0 && currentJsonInfo.contraindications[0] !== "") {
+            speechText += `다음 약품과는 함께 복용하지 마세요. 금기 약품은 ${currentJsonInfo.contraindications.join(', ')} 입니다.`;
+        } else {
+            speechText += `특별히 보고된 병용 금기 약품은 없습니다.`;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(speechText);
+        utterance.lang = 'ko-KR';
+        utterance.rate = 0.95; // 노약자 배려용 약간 느린 속도
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // ⭐ 즐겨찾기 관련 함수
     function getFavorites() { return JSON.parse(localStorage.getItem('med_favorites')) || []; }
-    
     function checkSaved(name) { return getFavorites().some(item => item.name === name); }
     
     function toggleFavoriteFromCurrent(type) {
@@ -374,21 +404,36 @@
         const favorites = getFavorites();
         container.innerHTML = '';
         if(favorites.length === 0) {
-            container.innerHTML = '<p style="color:#aaa; text-align:center; margin-top:30px; line-height:1.6;">저장된 의약품이 없습니다.<br>별(☆) 아이콘을 눌러 즐겨찾기를 추가해보세요!</p>';
+            container.innerHTML = '<p style="color:#aaa; text-align:center; margin-top:30px; line-height:1.6;">저장된 의약품이 없습니다.<br>검색이나 스캔 후 별(☆) 아이콘을 눌러 추가해보세요!</p>';
             return;
         }
         favorites.forEach(item => {
             const div = document.createElement('div');
             div.className = 'fav-item';
+            // 이름과 설명 영역을 터치하면 검색 화면으로 넘어가서 재조회 하도록 이벤트 추가
             div.innerHTML = `
-                <div>
+                <div class="fav-item-content" onclick="searchFromFavorite('${item.name}')">
                     <h3 style="color:#4CAF50;">${item.name}</h3>
                     <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">${item.desc}</p>
                 </div>
-                <button class="btn-remove" onclick="removeFavorite('${item.name}')">삭제</button>
+                <div class="fav-item-actions">
+                    <button class="btn-remove" onclick="removeFavorite('${item.name}')">삭제</button>
+                </div>
             `;
             container.appendChild(div);
         });
+    }
+
+    // 즐겨찾기 항목 클릭 시 검색 화면으로 넘어가서 자동 검색 실행
+    function searchFromFavorite(medName) {
+        // 검색 탭으로 이동
+        navigate('search', document.getElementById('nav-search'));
+        
+        // 검색창에 이름 입력
+        document.getElementById('search-input').value = medName;
+        
+        // 엔터키 이벤트를 우회하여 검색 함수 즉시 호출
+        handleSearch({ key: 'Enter' });
     }
     
     function removeFavorite(name) {
@@ -397,7 +442,6 @@
         localStorage.setItem('med_favorites', JSON.stringify(favorites));
         renderFavorites();
         
-        // 현재 보고 있는 약품과 이름이 같다면 화면의 별 모양도 끄기
         if(currentData.name === name) {
             if(document.getElementById('cam-star')) {
                 document.getElementById('cam-star').innerText = "☆";
