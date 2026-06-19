@@ -41,13 +41,13 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 @keyframes fadeOut { to { opacity:0; pointer-events:none; } }
 
 /* ── LAYOUT ── */
-.app { display: flex; flex-direction: column; width: 100%; height: 100%; }
-.view { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.app { display: flex; flex-direction: column; width: 100%; height: 100dvh; overflow: hidden; }
+.view { display: none; flex: 1; flex-direction: column; overflow: hidden; min-height: 0; }
 .view.active { display: flex; }
 
 /* ── TOP BAR ── */
 .topbar {
-  position: relative; z-index: 100;
+  position: relative; z-index: 100; flex-shrink: 0;
   background: rgba(10,14,26,0.95);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(20px);
@@ -111,13 +111,19 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   width: 4px; height: 28px; background: var(--accent);
   border-radius: 4px; position: absolute; bottom: 0; right: 8px;
   transform: rotate(-45deg); transform-origin: top center;
-  animation: magnifierMove 1.2s ease-in-out infinite;
+  animation: handleMove 1.2s ease-in-out infinite;
 }
 @keyframes magnifierMove {
   0%,100% { transform: translate(0, 0); }
   25% { transform: translate(14px, 8px); }
   50% { transform: translate(6px, 16px); }
   75% { transform: translate(-8px, 6px); }
+}
+@keyframes handleMove {
+  0%,100% { transform: rotate(-45deg) translate(0,0); }
+  25% { transform: rotate(-45deg) translate(14px, 8px); }
+  50% { transform: rotate(-45deg) translate(6px, 16px); }
+  75% { transform: rotate(-45deg) translate(-8px, 6px); }
 }
 .scanning-dots { display: flex; gap: 8px; }
 .scanning-dots span {
@@ -132,7 +138,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 
 /* ── CAMERA VIEW ── */
 #view-camera { overflow: hidden; }
-.cam-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.cam-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 .cam-video-wrap { position: relative; flex: 0 0 42%; background: #000; overflow: hidden; }
 .cam-video-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .scan-line {
@@ -176,7 +182,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .btn-torch.on { background: rgba(255,165,2,0.2); border-color: var(--warn); color: var(--warn); }
 
-.cam-info { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
+.cam-info { flex: 1; overflow-y: auto; padding: 14px 14px 50px 14px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); min-height: 0; }
 
 /* ── INFO CARD ── */
 .info-card {
@@ -198,24 +204,12 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   background: rgba(0,212,170,0.15); color: var(--accent); border: 1px solid rgba(0,212,170,0.3);
 }
 
-/* ★ 화살표 누를때 짤림 현상 100% 완벽 해결 부분 ★ */
-.collapsible-body { 
-  display: none; /* 평소엔 아예 감춤 */
-  padding: 16px 18px;
-  border-top: 1px solid var(--border);
-}
-.expanded .collapsible-body { 
-  display: block; /* 열릴때 높이 계산 없이 무조건 끝까지 보여줌 */
-  animation: slideDown 0.3s ease-out forwards;
-}
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+.collapsible-body { display: none; padding: 16px 18px; border-top: 1px solid var(--border); }
+.expanded .collapsible-body { display: block; animation: slideDown 0.3s ease-out forwards; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 .chevron { transition: transform 0.3s; color: var(--muted); font-size: 1.1rem; }
 .expanded .chevron { transform: rotate(180deg); }
 
-/* 상세 정보 행 */
 .info-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-start; }
 .info-label {
   flex-shrink: 0; width: 48px; font-size: 0.75rem; font-weight: 700;
@@ -224,7 +218,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .info-value { font-size: 0.9rem; line-height: 1.6; color: var(--text); }
 
-/* 부작용/경고 박스 */
 .warning-box {
   background: rgba(255,71,87,0.08); border: 1px solid rgba(255,71,87,0.25);
   border-radius: 12px; padding: 12px 14px; margin-top: 2px;
@@ -232,7 +225,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .warning-box .w-title { color: var(--danger); font-weight: 700; font-size: 0.82rem; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase; }
 .warning-box p { color: #fca5a5; font-size: 0.88rem; line-height: 1.6; }
 
-/* 병용금기 리스트 */
 .contra-list { list-style: none; display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
 .contra-list li {
   background: rgba(255,165,2,0.08); border: 1px solid rgba(255,165,2,0.2);
@@ -240,26 +232,21 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   color: #fcd34d; line-height: 1.4; display: flex; align-items: flex-start; gap: 8px;
 }
 
-/* 버튼 묶음 */
 .btn-group { display: flex; gap: 8px; align-items: center; }
 .btn-tts {
   padding: 6px 14px; background: rgba(0,153,255,0.15); border: 1px solid rgba(0,153,255,0.4);
   color: var(--accent2); border-radius: 50px; font-size: 0.82rem; font-weight: 700;
-  cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s;
+  cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s; white-space: nowrap;
 }
 .btn-tts:hover { background: rgba(0,153,255,0.25); }
 .btn-star { background: none; border: none; font-size: 1.6rem; cursor: pointer; transition: 0.2s; line-height: 1; }
 .btn-star:hover { transform: scale(1.2); }
 .btn-star.saved { filter: drop-shadow(0 0 8px rgba(255,215,0,0.8)); }
 
-/* ── 돋보기 효과 타겟 (꾹 누르는 대상) ── */
-.magnifiable {
-  position: relative;
-  transition: opacity 0.2s, transform 0.2s;
-  cursor: pointer; /* 터치 가능함 표시 */
-}
+/* ── 꾹 누르기 부분 돋보기 타겟 ── */
+.magnifiable { position: relative; transition: opacity 0.2s, transform 0.2s; cursor: pointer; }
 
-/* ── 특정부분 돋보기 + 읽기 팝업 UI (신규 기능) ── */
+/* ── 부분 돋보기 + 부분 듣기 팝업 ── */
 .text-magnifier-overlay {
   position: fixed; inset: 0; z-index: 2000;
   background: rgba(5, 8, 15, 0.95); backdrop-filter: blur(15px);
@@ -268,19 +255,23 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .text-magnifier-overlay.show { display: flex; animation: zoomInPopup 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 @keyframes zoomInPopup { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-.magnifier-icon { font-size: 3.5rem; margin-bottom: 20px; animation: float 2s infinite ease-in-out; }
-@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+.magnifier-icon-btn {
+  font-size: 1.5rem; margin-bottom: 20px;
+  background: var(--accent2); color: #fff; padding: 12px 24px; border-radius: 50px; cursor: pointer;
+  border: none; font-weight: 900; box-shadow: 0 4px 15px rgba(0,153,255,0.4);
+  animation: float 2s infinite ease-in-out;
+}
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
 .magnifier-content {
-  font-size: 2.2rem; /* 엄청 큰 글씨 */
-  font-weight: 900; color: #fff; line-height: 1.5;
+  font-size: 2.2rem; font-weight: 900; color: #fff; line-height: 1.5;
   max-height: 65vh; overflow-y: auto; word-break: keep-all; 
   text-shadow: 0 4px 15px rgba(0,0,0,0.6);
 }
-.magnifier-hint { margin-top: 35px; color: var(--accent); font-size: 1rem; font-weight: 700; opacity: 0.8; background: rgba(0,212,170,0.15); padding: 8px 20px; border-radius: 50px; }
+.magnifier-hint { margin-top: 35px; color: var(--accent); font-size: 1rem; font-weight: 700; opacity: 0.8; background: rgba(0,212,170,0.15); padding: 8px 20px; border-radius: 50px; cursor: pointer; }
 
 /* ── SEARCH VIEW ── */
 #view-search { padding: 0; overflow: hidden; }
-.search-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.search-body { flex: 1; overflow-y: auto; padding: 16px 16px 50px 16px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
 .search-bar-wrap { display: flex; gap: 10px; }
 .search-input {
   flex: 1; padding: 14px 20px;
@@ -299,7 +290,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 
 /* ── FAVORITES VIEW ── */
 #view-favorites { overflow: hidden; }
-.fav-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.fav-body { flex: 1; overflow-y: auto; padding: 16px 16px 50px 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 .fav-section-title { font-size: 1rem; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 8px; }
 .fav-section-title small { color: var(--muted); font-weight: 400; font-size: 0.8rem; }
 .fav-item {
@@ -317,7 +308,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   border-radius: 20px; font-size: 0.8rem; font-weight: 700; cursor: pointer;
 }
 
-/* ── MODAL (전체 확대) ── */
+/* ── MODAL (전체 보기) ── */
 .modal-zoom {
   display: none; position: fixed; inset: 0; z-index: 800;
   background: rgba(10,14,26,0.92); backdrop-filter: blur(16px);
@@ -327,13 +318,13 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .modal-content {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 24px; max-width: 500px; width: 100%; max-height: 80vh;
-  overflow-y: auto; padding: 24px; box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  overflow-y: auto; padding: 24px; box-shadow: 0 24px 80px rgba(0,0,0,0.6); position: relative;
 }
-.modal-content h2 { font-size: 1.4rem; font-weight: 900; color: var(--accent); margin-bottom: 6px; }
+.modal-content h2 { font-size: 1.4rem; font-weight: 900; color: var(--accent); margin: 0; }
 .modal-close {
-  position: absolute; top: 20px; right: 20px; width: 40px; height: 40px;
+  position: absolute; top: 15px; right: 15px; width: 36px; height: 36px;
   border-radius: 50%; background: var(--surface2); border: 1px solid var(--border);
-  color: var(--text); font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--text); font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 
 .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
@@ -342,10 +333,11 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .placeholder-text { color: var(--muted); font-size: 0.9rem; line-height: 1.7; text-align: center; padding: 10px 0; }
 ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
+/* 태블릿 (아이패드 등) 화면 대응 패치 */
 @media(min-width: 720px) {
   .cam-body { flex-direction: row; }
-  .cam-video-wrap { flex: 0 0 50%; }
-  .cam-info { flex: 1; }
+  .cam-video-wrap { flex: 0 0 50%; height: 100%; }
+  .cam-info { flex: 1; height: 100%; overflow-y: auto; padding-bottom: 50px; }
 }
 </style>
 </head>
@@ -367,18 +359,21 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   <div class="loading-sub" id="loading-sub">최적 AI 모델 탐색 중</div>
 </div>
 
-<div class="text-magnifier-overlay" id="text-magnifier-overlay" onclick="closeMagnifier()">
-  <div class="magnifier-icon">🔊</div>
+<div class="text-magnifier-overlay" id="text-magnifier-overlay">
+  <button class="magnifier-icon-btn" onclick="replayMagnifierSound(event)">🔊 여기를 누르면 소리가 다시 나와요!</button>
   <div class="magnifier-content" id="magnifier-text">텍스트 내용</div>
-  <div class="magnifier-hint">화면을 터치하면 돋보기가 닫힙니다</div>
+  <div class="magnifier-hint" onclick="closeMagnifier()">👇 닫으려면 여기를 누르세요</div>
 </div>
 
 <div class="modal-zoom" id="modal-zoom" onclick="closeModal(event)">
   <div class="modal-content" id="modal-content">
-    <h2 id="modal-title">상세 정보</h2>
+    <button class="modal-close" onclick="document.getElementById('modal-zoom').classList.remove('show')">✕</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-right:40px;">
+      <h2 id="modal-title">상세 정보</h2>
+      <button class="btn-tts" onclick="speakInfo()">🔊 전체 듣기</button>
+    </div>
     <div id="modal-body"></div>
   </div>
-  <button class="modal-close" onclick="document.getElementById('modal-zoom').classList.remove('show')">✕</button>
 </div>
 
 <div class="app">
@@ -427,7 +422,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
             <div class="btn-group" onclick="event.stopPropagation()">
               <button class="btn-tts" onclick="speakInfo()">🔊 전체듣기</button>
               <button class="btn-star" id="cam-star" onclick="toggleFav('cam')">☆</button>
-              <button class="btn-tts" style="background:rgba(0,212,170,0.12);border-color:rgba(0,212,170,0.3);color:var(--accent)" onclick="openModal('cam')">전체확대</button>
+              <button class="btn-tts" style="background:rgba(0,212,170,0.12);border-color:rgba(0,212,170,0.3);color:var(--accent)" onclick="openModal('cam')">전체 보기</button>
             </div>
             <span class="chevron">⌄</span>
           </div>
@@ -445,12 +440,13 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
       </div>
 
       <div id="search-result-wrap" style="display:none; flex-direction:column; gap:10px;">
-        <div class="info-card expanded"> <div class="info-card-header" onclick="toggleExpand(this.parentElement)">
+        <div class="info-card expanded">
+          <div class="info-card-header" onclick="toggleExpand(this.parentElement)">
             <h3 id="search-drug-name" style="color:var(--accent)">약품명</h3>
             <div class="btn-group" onclick="event.stopPropagation()">
               <button class="btn-tts" onclick="speakInfo()">🔊 전체듣기</button>
               <button class="btn-star" id="search-star" onclick="toggleFav('search')">☆</button>
-              <button class="btn-tts" style="background:rgba(0,212,170,0.12);border-color:rgba(0,212,170,0.3);color:var(--accent)" onclick="openModal('search')">전체확대</button>
+              <button class="btn-tts" style="background:rgba(0,212,170,0.12);border-color:rgba(0,212,170,0.3);color:var(--accent)" onclick="openModal('search')">전체 보기</button>
             </div>
             <span class="chevron">⌄</span>
           </div>
@@ -497,6 +493,7 @@ let currentView = 'camera';
 let stream = null;
 let torchOn = false;
 let facingMode = 'environment';
+let speechUnlocked = false; // 애플 보안 해제용 플래그
 
 /* ── INIT ── */
 window.onload = async () => {
@@ -685,7 +682,6 @@ function buildDetailHTML(info) {
     ? contras.map(c => `<li class="magnifiable">⛔ ${c}</li>`).join('')
     : '<li class="magnifiable">특이 병용 금기 사항 없음</li>';
 
-  // 💡 각각의 정보에 magnifiable 클래스를 추가하여 꾹 누를 수 있게 만듦
   return `
     <div style="margin-bottom:12px; font-size:0.8rem; color:var(--accent); text-align:center; background:rgba(0,212,170,0.1); padding:8px; border-radius:8px;">
       👆 글씨를 <strong>꾹~</strong> 누르면 돋보기 모드와 함께 읽어줍니다.
@@ -726,29 +722,35 @@ function renderDrugInfo(type, info) {
   }
 }
 
-/* ── 짤림 문제 해결 EXPAND / COLLAPSE ── */
+/* ── 아코디언 열고닫기 ── */
 function toggleExpand(card) {
   card.classList.toggle('expanded');
 }
 
-/* ── 꾹 누르기 돋보기 (MAGNIFIER) 로직 ── */
+/* ── 꾹 누르기 돋보기 (MAGNIFIER) 로직 (애플 음성 차단 회피 적용) ── */
 let pressTimer;
 let pressedElement = null;
+let currentMagnifierText = "";
 
 function startPress(e) {
   const target = e.target.closest('.magnifiable');
   if (!target) return;
+
+  // 애플 기기 정책 회피용: 첫 화면 터치 시 음성 API 잠금 강제 해제 (투명 소리 틀기)
+  if (!speechUnlocked) {
+    speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+    speechSynthesis.cancel();
+    speechUnlocked = true;
+  }
   
   pressedElement = target;
-  // 터치 시 살짝 눌리는 시각적 피드백
   target.style.opacity = '0.6';
   target.style.transform = 'scale(0.98)';
 
-  // 0.5초(500ms) 동안 누르고 있으면 돋보기 팝업 실행
   pressTimer = setTimeout(() => {
     resetPressFeedback();
     const textToRead = target.innerText || target.textContent;
-    openMagnifier(textToRead.replace(/⛔|👆|💡/g, '').trim()); // 아이콘 텍스트는 빼고 읽기
+    openMagnifier(textToRead.replace(/⛔|👆|💡/g, '').trim()); 
   }, 500); 
 }
 
@@ -765,34 +767,48 @@ function resetPressFeedback() {
   }
 }
 
-// 터치 및 마우스 이벤트에 모두 연결
 document.addEventListener('touchstart', startPress);
 document.addEventListener('touchend', cancelPress);
-document.addEventListener('touchmove', cancelPress); // 스크롤하면 취소
+document.addEventListener('touchmove', cancelPress);
 document.addEventListener('mousedown', startPress);
 document.addEventListener('mouseup', cancelPress);
 document.addEventListener('mousemove', cancelPress);
 
-/* 부분 돋보기 팝업 열기/닫기 */
+/* 부분 돋보기 팝업 열기 & 버그 방지 지연 읽기 */
 function openMagnifier(text) {
-  // 1. 팝업 띄우기
+  currentMagnifierText = text;
   document.getElementById('magnifier-text').innerText = text;
   document.getElementById('text-magnifier-overlay').classList.add('show');
   
-  // 2. 다른 음성 중단하고 이 부분만 읽기
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'ko-KR';
-  u.rate = parseFloat(document.getElementById('tts-speed').value);
-  speechSynthesis.speak(u);
+  
+  // 0.05초 딜레이를 주어 기기가 이전 음성 취소와 새 음성 재생을 헷갈리지 않도록 완벽 처리
+  setTimeout(() => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR';
+    u.rate = parseFloat(document.getElementById('tts-speed').value);
+    speechSynthesis.speak(u);
+  }, 50);
 }
 
 function closeMagnifier() {
   document.getElementById('text-magnifier-overlay').classList.remove('show');
-  speechSynthesis.cancel(); // 닫으면 음성도 멈춤
+  speechSynthesis.cancel(); 
 }
 
-/* ── MODAL 전체 확대 (기존) ── */
+/* 돋보기 창 내부 수동 다시 듣기 버튼 */
+function replayMagnifierSound(e) {
+  e.stopPropagation(); // 창 닫히는 것 방지
+  speechSynthesis.cancel();
+  setTimeout(() => {
+    const u = new SpeechSynthesisUtterance(currentMagnifierText);
+    u.lang = 'ko-KR';
+    u.rate = parseFloat(document.getElementById('tts-speed').value);
+    speechSynthesis.speak(u);
+  }, 50);
+}
+
+/* ── MODAL 전체 보기 (기존) ── */
 function openModal(type) {
   if (!currentInfo) return;
   document.getElementById('modal-title').textContent = currentInfo.name;
@@ -806,16 +822,24 @@ function closeModal(e) {
 /* ── TTS 전체 듣기 (기존) ── */
 function speakInfo() {
   if (!currentInfo) return showToast('읽을 정보가 없습니다.');
+  
+  if (!speechUnlocked) {
+    speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+    speechUnlocked = true;
+  }
+  
   speechSynthesis.cancel();
-  const i = currentInfo;
-  let text = `약품명은 ${i.name}입니다. 효능은 ${i.efficacy}입니다. 용법은 ${i.usage}입니다. 주의사항입니다. ${i.warning}.`;
-  const c = (i.contraindications || []).filter(x => x);
-  if (c.length) text += ` 병용 금기 약품은 ${c.join(', ')}입니다.`;
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'ko-KR';
-  u.rate = parseFloat(document.getElementById('tts-speed').value);
-  speechSynthesis.speak(u);
-  showToast('🔊 전체 읽기 시작');
+  setTimeout(() => {
+    const i = currentInfo;
+    let text = `약품명은 ${i.name}입니다. 효능은 ${i.efficacy}입니다. 용법은 ${i.usage}입니다. 주의사항입니다. ${i.warning}.`;
+    const c = (i.contraindications || []).filter(x => x);
+    if (c.length) text += ` 병용 금기 약품은 ${c.join(', ')}입니다.`;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR';
+    u.rate = parseFloat(document.getElementById('tts-speed').value);
+    speechSynthesis.speak(u);
+    showToast('🔊 전체 읽기 시작');
+  }, 50);
 }
 
 /* ── FAVORITES ── */
