@@ -1,433 +1,806 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트 의약품 AR 도우미 (최종 마스터본)</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body, html { width: 100%; height: 100%; font-family: -apple-system, sans-serif; background-color: #121212; color: #fff; overflow: hidden; }
-        
-        .app-container { position: relative; width: 100%; height: calc(100% - 70px); }
-        .view { display: none; width: 100%; height: 100%; flex-direction: column; overflow-y: auto; padding-bottom: 20px; }
-        .view.active { display: flex; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MedScan AI — 스마트 의약품 도우미</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --surface: #111827;
+  --surface2: #1a2235;
+  --border: rgba(255,255,255,0.07);
+  --accent: #00d4aa;
+  --accent2: #0099ff;
+  --danger: #ff4757;
+  --warn: #ffa502;
+  --text: #e8ecf4;
+  --muted: #6b7280;
+  --card-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', sans-serif; }
 
-        /* 설정 바 (API 키 및 음성 속도 조절 통합) */
-        .setting-bar { position: absolute; top: 0; left: 0; width: 100%; background: rgba(34, 34, 34, 0.95); padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 200; border-bottom: 1px solid #333; backdrop-filter: blur(5px); }
-        .key-row { display: flex; justify-content: center; gap: 10px; width: 100%; }
-        .key-row input { padding: 8px 12px; width: 60%; max-width: 250px; background: #333; border: 1px solid #555; color: white; border-radius: 20px; font-size: 0.9rem; outline: none; }
-        .key-row button { padding: 8px 15px; background: #4CAF50; border: none; color: white; border-radius: 20px; cursor: pointer; white-space: nowrap; font-weight: bold; }
-        
-        /* 음성 속도 조절 영역 */
-        .speed-row { display: flex; align-items: center; gap: 10px; justify-content: center; width: 100%; font-size: 0.85rem; color: #aaa; }
-        .speed-row input[type="range"] { width: 120px; accent-color: #4CAF50; cursor: pointer; }
+/* ── SPLASH ── */
+#splash {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+#splash .logo-text { font-size: 2.8rem; font-weight: 900; letter-spacing: -1px; }
+#splash .logo-text span { color: var(--accent); }
+#splash .logo-sub { color: var(--muted); font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; }
+#splash .pulse-ring {
+  width: 80px; height: 80px; border-radius: 50%;
+  border: 3px solid var(--accent);
+  animation: pulseRing 1.5s ease-out infinite;
+}
+@keyframes pulseRing { 0%{transform:scale(0.8);opacity:1} 100%{transform:scale(1.8);opacity:0} }
+#splash.hide { animation: fadeOut 0.5s forwards; }
+@keyframes fadeOut { to { opacity:0; pointer-events:none; } }
 
-        #view-camera { padding-top: 85px; flex-direction: column; overflow: hidden; }
-        
-        .camera-wrapper { position: relative; width: 100%; height: 40%; background: #000; flex-shrink: 0; border-bottom: 2px solid #333; }
-        #video-element { width: 100%; height: 100%; object-fit: cover; }
-        
-        .ai-capture-btn { position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); z-index: 10; padding: 15px 30px; background: #03a9f4; color: #fff; border: none; border-radius: 50px; font-weight: bold; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(3, 169, 244, 0.5); white-space: nowrap; transition: 0.2s; border: 2px solid #fff; }
-        .ai-capture-btn:active { transform: translate(-50%, 5px); }
-        .ai-capture-btn:disabled { background: #555; box-shadow: none; cursor: not-allowed; border-color: #777; }
+/* ── LAYOUT ── */
+.app { display: flex; flex-direction: column; width: 100%; height: 100%; }
+.view { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.view.active { display: flex; }
 
-        .top-info-panel { width: 100%; height: 60%; padding: 35px 15px 15px 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; background: #121212; }
-        .info-box { background: #1e1e1e; padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
-        
-        /* 헤더(제목과 버튼들) 정렬 통일 */
-        .box-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 12px; gap: 10px; }
-        .box-header h3, .box-header h2 { font-size: 1.2rem; color: #4CAF50; margin: 0; }
-        
-        .warning-text { color: #ff5252; font-weight: bold; background: rgba(255, 82, 82, 0.1); padding: 8px 12px; border-radius: 8px; display: block; margin-top: 10px; border: 1px solid rgba(255, 82, 82, 0.3); line-height: 1.5; }
+/* ── TOP BAR ── */
+.topbar {
+  position: relative; z-index: 100;
+  background: rgba(10,14,26,0.95);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  padding: 10px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.topbar-row1 { display: flex; align-items: center; gap: 10px; }
+.topbar-title { font-size: 1.1rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; flex: 1; }
+.topbar-title span { color: var(--text); }
+.api-input {
+  flex: 1; padding: 8px 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 50px; font-size: 0.85rem;
+  outline: none; transition: 0.2s;
+  font-family: 'DM Mono', monospace;
+}
+.api-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,170,0.15); }
+.btn-save {
+  padding: 8px 18px; background: var(--accent); color: #000;
+  border: none; border-radius: 50px; font-weight: 700; font-size: 0.85rem;
+  cursor: pointer; white-space: nowrap; transition: 0.2s;
+}
+.btn-save:hover { background: #00ffcc; transform: translateY(-1px); }
+.topbar-row2 { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.8rem; }
+.topbar-row2 input[type=range] { flex: 1; max-width: 140px; accent-color: var(--accent); cursor: pointer; }
+.speed-badge {
+  font-family: 'DM Mono', monospace; font-size: 0.8rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 2px 10px; color: var(--accent);
+}
 
-        #view-search { align-items: center; padding-top: 100px; }
-        .search-container { width: 90%; max-width: 800px; margin-top: 20px; }
-        .search-input { width: 100%; padding: 18px 24px; border-radius: 30px; border: 2px solid #333; font-size: 1rem; background: #252525; color: white; outline: none; transition: 0.3s; }
-        .search-input:focus { border-color: #4CAF50; box-shadow: 0 0 10px rgba(76, 175, 80, 0.2); }
+/* ── BOTTOM NAV ── */
+.bottomnav {
+  height: 64px; flex-shrink: 0;
+  background: rgba(10,14,26,0.98);
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-around; align-items: center;
+  z-index: 100;
+}
+.nav-btn { flex: 1; height: 100%; background: none; border: none; color: var(--muted); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: 0.2s; }
+.nav-btn span { font-size: 0.72rem; font-weight: 500; }
+.nav-btn svg { width: 22px; height: 22px; fill: currentColor; transition: 0.2s; }
+.nav-btn.active { color: var(--accent); }
+.nav-btn.active svg { filter: drop-shadow(0 0 6px var(--accent)); }
 
-        .content-card { width: 90%; max-width: 800px; background: #1e1e1e; border-radius: 16px; padding: 25px; margin-top: 20px; border: 1px solid rgba(255,255,255,0.05); }
-        .content-card p { line-height: 1.6; color: #ddd; margin-bottom: 12px; white-space: pre-wrap; }
-        
-        .contra-section { margin-top: 20px; padding-top: 20px; border-top: 1px dashed #555; }
-        .contra-section h4 { color: #ff9800; margin-bottom: 12px; font-size: 1.1rem; display: flex; align-items: center; gap: 5px; }
-        .contra-list { list-style: none; padding: 0; }
-        .contra-list li { background: rgba(255, 152, 0, 0.1); color: #ffb74d; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; font-size: 0.95rem; border: 1px solid rgba(255, 152, 0, 0.2); line-height: 1.4; }
+/* ── LOADING OVERLAY ── */
+.loading-overlay {
+  display: none; position: fixed; inset: 0; z-index: 500;
+  background: rgba(10,14,26,0.85); backdrop-filter: blur(8px);
+  flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.loading-overlay.show { display: flex; }
+.magnifier-wrap { position: relative; width: 80px; height: 80px; }
+.magnifier-glass {
+  width: 54px; height: 54px; border-radius: 50%;
+  border: 4px solid var(--accent); background: rgba(0,212,170,0.08);
+  position: absolute; top: 0; left: 0;
+  animation: magnifierMove 1.2s ease-in-out infinite;
+}
+.magnifier-handle {
+  width: 4px; height: 28px; background: var(--accent);
+  border-radius: 4px; position: absolute; bottom: 0; right: 8px;
+  transform: rotate(-45deg); transform-origin: top center;
+  animation: magnifierMove 1.2s ease-in-out infinite;
+}
+@keyframes magnifierMove {
+  0%,100% { transform: translate(0, 0); }
+  25% { transform: translate(14px, 8px); }
+  50% { transform: translate(6px, 16px); }
+  75% { transform: translate(-8px, 6px); }
+}
+.magnifier-handle { animation: handleMove 1.2s ease-in-out infinite; }
+@keyframes handleMove {
+  0%,100% { transform: rotate(-45deg) translate(0,0); }
+  25% { transform: rotate(-45deg) translate(14px, 8px); }
+  50% { transform: rotate(-45deg) translate(6px, 16px); }
+  75% { transform: rotate(-45deg) translate(-8px, 6px); }
+}
+.scanning-dots { display: flex; gap: 8px; }
+.scanning-dots span {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  animation: dotBounce 1s ease-in-out infinite;
+}
+.scanning-dots span:nth-child(2) { animation-delay: 0.15s; background: var(--accent2); }
+.scanning-dots span:nth-child(3) { animation-delay: 0.3s; background: var(--warn); }
+@keyframes dotBounce { 0%,80%,100%{transform:scale(0.8);opacity:0.5} 40%{transform:scale(1.2);opacity:1} }
+.loading-text { color: var(--accent); font-weight: 600; font-size: 0.95rem; letter-spacing: 0.5px; }
+.loading-sub { color: var(--muted); font-size: 0.8rem; }
 
-        /* 음성 및 즐겨찾기 버튼 */
-        .btn-group { display: flex; gap: 10px; align-items: center; }
-        .btn-star { background: none; border: none; font-size: 2rem; color: #555; cursor: pointer; transition: 0.2s; }
-        .btn-star.saved { color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
-        .btn-tts { background: #4CAF50; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .btn-tts:active { background: #388E3C; }
+/* ── CAMERA VIEW ── */
+#view-camera { overflow: hidden; }
+.cam-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.cam-video-wrap { position: relative; flex: 0 0 42%; background: #000; overflow: hidden; }
+.cam-video-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* scan line animation */
+.scan-line {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(to right, transparent, var(--accent), transparent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: scanDown 2.5s linear infinite;
+  opacity: 0.6;
+}
+@keyframes scanDown { 0%{top:0%} 100%{top:100%} }
+/* corner brackets */
+.cam-corners { position: absolute; inset: 12px; pointer-events: none; }
+.cam-corners::before, .cam-corners::after,
+.cam-corner-br::before, .cam-corner-br::after {
+  content: ''; position: absolute; width: 22px; height: 22px;
+  border-color: var(--accent); border-style: solid; border-width: 0;
+}
+.cam-corners::before { top:0; left:0; border-top-width: 3px; border-left-width: 3px; border-radius: 4px 0 0 0; }
+.cam-corners::after { top:0; right:0; border-top-width: 3px; border-right-width: 3px; border-radius: 0 4px 0 0; }
+.cam-corner-br::before { bottom:0; left:0; border-bottom-width: 3px; border-left-width: 3px; border-radius: 0 0 0 4px; }
+.cam-corner-br::after { bottom:0; right:0; border-bottom-width: 3px; border-right-width: 3px; border-radius: 0 0 4px 0; }
 
-        #view-favorites { align-items: center; padding-top: 100px; }
-        .fav-header { width: 90%; max-width: 800px; margin-top: 10px; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-        .fav-list { width: 90%; max-width: 800px; display: flex; flex-direction: column; gap: 15px; }
-        .fav-item { background: #2a2a2a; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #4CAF50; box-shadow: 0 4px 6px rgba(0,0,0,0.3); overflow: hidden; }
-        .fav-item-content { flex: 1; padding: 20px; cursor: pointer; transition: background 0.2s; }
-        .fav-item-content:hover { background: #333; }
-        .fav-item-actions { padding: 20px; }
-        .fav-item .btn-remove { background: #ff5252; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+.cam-controls {
+  position: absolute; bottom: 14px; left: 0; right: 0;
+  display: flex; justify-content: center; align-items: center; gap: 14px;
+}
+.btn-capture {
+  padding: 13px 32px; background: var(--accent); color: #000;
+  border: none; border-radius: 50px; font-weight: 800; font-size: 1rem;
+  cursor: pointer; box-shadow: 0 0 20px rgba(0,212,170,0.5);
+  transition: 0.2s; display: flex; align-items: center; gap: 8px;
+}
+.btn-capture:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(0,212,170,0.7); }
+.btn-capture:active { transform: scale(0.97); }
+.btn-capture:disabled { background: var(--surface2); color: var(--muted); box-shadow: none; cursor: not-allowed; }
+.btn-torch {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-size: 1.2rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: 0.2s;
+}
+.btn-torch.on { background: rgba(255,165,2,0.2); border-color: var(--warn); color: var(--warn); }
 
-        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: #1a1a1a; display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -5px 15px rgba(0,0,0,0.5); z-index: 100; border-top: 1px solid #333; }
-        .nav-item { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #888; text-decoration: none; cursor: pointer; transition: 0.3s; }
-        .nav-item span { font-size: 0.8rem; margin-top: 5px; font-weight: bold; }
-        .nav-item svg { width: 26px; height: 26px; fill: currentColor; }
-        .nav-item.active { color: #03a9f4; }
+.cam-info { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
 
-        .loading { display: none; color: #03a9f4; font-weight: bold; margin-top: 10px; text-align: center; padding: 10px; background: rgba(3, 169, 244, 0.1); border-radius: 8px; }
+/* ── INFO CARD ── */
+.info-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+  box-shadow: var(--card-shadow);
+  transition: 0.3s;
+}
+.info-card.expandable { cursor: pointer; }
+.info-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+.info-card-header h3 { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+.info-card-body { padding: 16px 18px; }
+.pill-tag {
+  display: inline-block; padding: 3px 12px; border-radius: 50px;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px;
+  background: rgba(0,212,170,0.15); color: var(--accent); border: 1px solid rgba(0,212,170,0.3);
+}
+.info-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-start; }
+.info-label {
+  flex-shrink: 0; width: 48px; font-size: 0.75rem; font-weight: 700;
+  color: var(--muted); padding-top: 2px; text-transform: uppercase; letter-spacing: 0.5px;
+  font-family: 'DM Mono', monospace;
+}
+.info-value { font-size: 0.9rem; line-height: 1.6; color: var(--text); }
 
-        @media (min-width: 768px) {
-            #view-camera { flex-direction: row; align-items: stretch; padding-top: 85px; }
-            .camera-wrapper { width: 50%; height: 100%; border-bottom: none; border-right: 2px solid #333; }
-            .ai-capture-btn { bottom: 30px; }
-            .top-info-panel { width: 50%; height: 100%; padding: 25px; }
-        }
-    </style>
+.warning-box {
+  background: rgba(255,71,87,0.08); border: 1px solid rgba(255,71,87,0.25);
+  border-radius: 12px; padding: 12px 14px; margin-top: 2px;
+}
+.warning-box .w-title { color: var(--danger); font-weight: 700; font-size: 0.82rem; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase; }
+.warning-box p { color: #fca5a5; font-size: 0.88rem; line-height: 1.6; }
+
+.contra-list { list-style: none; display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+.contra-list li {
+  background: rgba(255,165,2,0.08); border: 1px solid rgba(255,165,2,0.2);
+  border-radius: 10px; padding: 10px 14px; font-size: 0.87rem;
+  color: #fcd34d; line-height: 1.4; display: flex; align-items: flex-start; gap: 8px;
+}
+
+.btn-group { display: flex; gap: 8px; align-items: center; }
+.btn-tts {
+  padding: 6px 14px; background: rgba(0,153,255,0.15); border: 1px solid rgba(0,153,255,0.4);
+  color: var(--accent2); border-radius: 50px; font-size: 0.82rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s;
+}
+.btn-tts:hover { background: rgba(0,153,255,0.25); }
+.btn-star { background: none; border: none; font-size: 1.6rem; cursor: pointer; transition: 0.2s; line-height: 1; }
+.btn-star:hover { transform: scale(1.2); }
+.btn-star.saved { filter: drop-shadow(0 0 8px rgba(255,215,0,0.8)); }
+
+/* expand chevron */
+.chevron { transition: transform 0.3s; color: var(--muted); font-size: 1.1rem; }
+.expanded .chevron { transform: rotate(180deg); }
+.collapsible-body { overflow: hidden; transition: max-height 0.4s ease, opacity 0.3s; }
+.collapsible-body.collapsed { max-height: 0 !important; opacity: 0; }
+
+/* ── SEARCH VIEW ── */
+#view-search { padding: 0; overflow: hidden; }
+.search-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.search-bar-wrap { display: flex; gap: 10px; }
+.search-input {
+  flex: 1; padding: 14px 20px;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); border-radius: 50px; font-size: 0.95rem;
+  outline: none; transition: 0.2s;
+}
+.search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,170,0.15); }
+.btn-search-go {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: var(--accent); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: 0.2s;
+  font-size: 1.2rem;
+}
+.btn-search-go:hover { transform: scale(1.1); }
+
+/* ── FAVORITES VIEW ── */
+#view-favorites { overflow: hidden; }
+.fav-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.fav-section-title { font-size: 1rem; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+.fav-section-title small { color: var(--muted); font-weight: 400; font-size: 0.8rem; }
+.fav-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 4px solid var(--accent); border-radius: 14px;
+  display: flex; align-items: center; overflow: hidden; transition: 0.2s;
+  box-shadow: var(--card-shadow);
+}
+.fav-item:hover { border-left-color: var(--accent2); transform: translateX(4px); }
+.fav-item-main { flex: 1; padding: 16px; cursor: pointer; }
+.fav-item-main h3 { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.fav-item-main p { font-size: 0.82rem; color: var(--muted); }
+.btn-del {
+  margin: 0 14px; padding: 7px 14px; background: rgba(255,71,87,0.12);
+  border: 1px solid rgba(255,71,87,0.3); color: var(--danger);
+  border-radius: 20px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: 0.2s;
+}
+.btn-del:hover { background: rgba(255,71,87,0.25); }
+
+/* ── MODAL ZOOM ── */
+.modal-zoom {
+  display: none; position: fixed; inset: 0; z-index: 800;
+  background: rgba(10,14,26,0.92); backdrop-filter: blur(16px);
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-zoom.show { display: flex; animation: fadeIn 0.2s; }
+@keyframes fadeIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+.modal-content {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 24px; max-width: 500px; width: 100%; max-height: 80vh;
+  overflow-y: auto; padding: 24px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+}
+.modal-content h2 { font-size: 1.4rem; font-weight: 900; color: var(--accent); margin-bottom: 6px; }
+.modal-close {
+  position: absolute; top: 20px; right: 20px; width: 40px; height: 40px;
+  border-radius: 50%; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: 0.2s;
+}
+.modal-close:hover { background: var(--danger); }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty-state .icon { font-size: 3rem; margin-bottom: 14px; opacity: 0.5; }
+.empty-state p { font-size: 0.9rem; line-height: 1.7; }
+
+/* ── MISC ── */
+.placeholder-text { color: var(--muted); font-size: 0.9rem; line-height: 1.7; text-align: center; padding: 10px 0; }
+::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+@media(min-width: 720px) {
+  .cam-body { flex-direction: row; }
+  .cam-video-wrap { flex: 0 0 50%; }
+  .cam-info { flex: 1; }
+}
+</style>
 </head>
 <body>
 
-<div class="setting-bar">
-    <div class="key-row">
-        <input type="password" id="api-key-input" placeholder="Google AI API Key 입력">
-        <button onclick="saveApiKey()">키 저장</button>
-    </div>
-    <div class="speed-row">
-        <span>🔊 음성 속도: </span>
-        <input type="range" id="tts-speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateSpeedLabel(this.value)">
-        <span id="speed-val">1.0배속</span>
-    </div>
+<!-- SPLASH -->
+<div id="splash">
+  <div class="pulse-ring"></div>
+  <div class="logo-text">Med<span>Scan</span> AI</div>
+  <div class="logo-sub">스마트 의약품 도우미</div>
 </div>
 
-<div class="app-container">
-    
-    <div id="view-camera" class="view active">
-        <div class="camera-wrapper">
-            <video id="video-element" autoplay playsinline muted></video>
-            <button id="capture-btn" class="ai-capture-btn" onclick="analyzeImageWithAI()">📷 스마트 인식 (AI 분석)</button>
-        </div>
-        
-        <div class="top-info-panel">
-            <div id="camera-loading" class="loading">최적의 AI 모델을 찾아 약품을 분석 중입니다... 🧠</div>
-            <div class="info-box">
-                <div class="box-header">
-                    <h3 style="color:#03a9f4;">💊 인식 약품 정보</h3>
-                </div>
-                <p id="cam-res-name" style="color:#aaa;">카메라를 약품에 맞추고 중앙의 파란 버튼을 누르세요.</p>
-            </div>
-            <div class="info-box">
-                <div class="box-header">
-                    <h3>📖 상세 의료 매뉴얼</h3>
-                    <div class="btn-group">
-                        <button class="btn-tts" onclick="speakCurrentInfo()">🔊 듣기</button>
-                        <button class="btn-star" id="cam-star" onclick="toggleFavoriteFromCurrent('cam')">☆</button>
-                    </div>
-                </div>
-                <div id="cam-res-manual" style="color:#aaa;">인식 대기 중...</div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="view-search" class="view">
-        <div class="search-container">
-            <input type="text" id="search-input" class="search-input" placeholder="약품명, 성분명, 증상 입력 후 엔터 (예: 타이레놀)" onkeypress="handleSearch(event)">
-        </div>
-        <div id="search-loading" class="loading">의약품 정보를 조회하고 있습니다... 🔍</div>
-
-        <div class="content-card" id="search-result" style="display:none;">
-            <div class="box-header">
-                <h2 id="search-res-title">약품명</h2>
-                <div class="btn-group">
-                    <button class="btn-tts" onclick="speakCurrentInfo()">🔊 듣기</button>
-                    <button class="btn-star" id="search-star" onclick="toggleFavoriteFromCurrent('search')">☆</button>
-                </div>
-            </div>
-            <div id="search-res-manual"></div>
-        </div>
-    </div>
-
-    <div id="view-favorites" class="view">
-        <div class="fav-header">
-            <h2 style="color:#ffd700;">⭐ 내 즐겨찾기 저장소</h2>
-            <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">목록을 터치하면 상세 정보를 다시 검색합니다.</p>
-        </div>
-        <div class="fav-list" id="fav-list-container"></div>
-    </div>
-
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="magnifier-wrap">
+    <div class="magnifier-glass"></div>
+    <div class="magnifier-handle"></div>
+  </div>
+  <div class="loading-text" id="loading-text">분석 중입니다...</div>
+  <div class="scanning-dots"><span></span><span></span><span></span></div>
+  <div class="loading-sub" id="loading-sub">최적 AI 모델 탐색 중</div>
 </div>
 
-<nav class="bottom-nav">
-    <div class="nav-item active" onclick="navigate('camera', this)" id="nav-camera">
-        <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
-        <span>카메라</span>
-    </div>
-    <div class="nav-item" onclick="navigate('search', this)" id="nav-search">
-        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-        <span>검색</span>
-    </div>
-    <div class="nav-item" onclick="navigate('favorites', this)" id="nav-fav">
-        <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-        <span>즐겨찾기</span>
-    </div>
-</nav>
+<!-- MODAL ZOOM -->
+<div class="modal-zoom" id="modal-zoom" onclick="closeModal(event)">
+  <div class="modal-content" id="modal-content">
+    <h2 id="modal-title">상세 정보</h2>
+    <div id="modal-body"></div>
+  </div>
+  <button class="modal-close" onclick="document.getElementById('modal-zoom').classList.remove('show')">✕</button>
+</div>
 
-<canvas id="hidden-canvas" style="display:none;"></canvas>
+<div class="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-row1">
+      <div class="topbar-title">Med<span>Scan</span></div>
+      <input type="password" id="api-key-input" class="api-input" placeholder="Google AI API Key">
+      <button class="btn-save" onclick="saveApiKey()">저장</button>
+    </div>
+    <div class="topbar-row2">
+      <span>🔊</span>
+      <input type="range" id="tts-speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateSpeed(this.value)">
+      <div class="speed-badge" id="speed-val">1.0×</div>
+      <span style="margin-left:auto; font-size:0.75rem;">음성 속도</span>
+    </div>
+  </div>
+
+  <!-- VIEWS -->
+
+  <!-- CAMERA -->
+  <div id="view-camera" class="view active">
+    <div class="cam-body">
+      <div class="cam-video-wrap">
+        <video id="video-el" autoplay playsinline muted></video>
+        <div class="scan-line"></div>
+        <div class="cam-corners"><div class="cam-corner-br"></div></div>
+        <div class="cam-controls">
+          <button class="btn-torch" id="btn-torch" onclick="toggleTorch()" title="플래시">💡</button>
+          <button class="btn-capture" id="btn-capture" onclick="analyzeImage()">
+            <span>📷</span> 스마트 인식
+          </button>
+          <button class="btn-torch" onclick="switchCamera()" title="카메라 전환">🔄</button>
+        </div>
+      </div>
+
+      <div class="cam-info" id="cam-info">
+        <!-- drug name card -->
+        <div class="info-card">
+          <div class="info-card-header">
+            <h3 style="color:var(--accent2)">💊 인식된 약품</h3>
+          </div>
+          <div class="info-card-body">
+            <p id="cam-drug-name" class="placeholder-text">카메라를 약품에 맞추고<br>[ 스마트 인식 ] 버튼을 눌러주세요</p>
+          </div>
+        </div>
+        <!-- detail card -->
+        <div class="info-card expandable" id="cam-detail-card" onclick="toggleExpand(this)" style="display:none">
+          <div class="info-card-header">
+            <h3>📋 상세 정보</h3>
+            <div class="btn-group" onclick="event.stopPropagation()">
+              <button class="btn-tts" onclick="speakInfo()">🔊 듣기</button>
+              <button class="btn-star" id="cam-star" onclick="toggleFav('cam')">☆</button>
+              <button class="btn-tts" style="background:rgba(0,212,170,0.12);border-color:rgba(0,212,170,0.3);color:var(--accent)" onclick="openModal('cam')">🔍 확대</button>
+            </div>
+            <span class="chevron">⌄</span>
+          </div>
+          <div class="collapsible-body" id="cam-detail-body"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div id="view-search" class="view">
+    <div class="search-body">
+      <div class="search-bar-wrap">
+        <input type="text" id="search-input" class="search-input" placeholder="약품명, 성분, 증상 검색 (예: 타이레놀)" onkeypress="if(event.key==='Enter')doSearch()">
+        <button class="btn-search-go" onclick="doSearch()">🔍</button>
+      </div>
+
+      <div id="search-result-wrap" style="display:none; flex-direction:column; gap:10px;">
+        <div class="info-card">
+          <div class="info-card-header">
+            <h3 id="search-drug-name" style="color:var(--accent)">약품명</h3>
+            <div class="btn-group">
+              <button class="btn-tts" onclick="speakInfo()">🔊 듣기</button>
+              <button class="btn-star" id="search-star" onclick="toggleFav('search')">☆</button>
+              <button class="btn-tts" style="background:rgba(0,212,170,0.12);border-color:rgba(0,212,170,0.3);color:var(--accent)" onclick="openModal('search')">🔍 확대</button>
+            </div>
+          </div>
+          <div class="info-card-body" id="search-detail-body"></div>
+        </div>
+      </div>
+
+      <div class="empty-state" id="search-empty">
+        <div class="icon">🔬</div>
+        <p>약품명이나 증상을 입력하면<br>AI가 상세 의약 정보를 알려드립니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAVORITES -->
+  <div id="view-favorites" class="view">
+    <div class="fav-body">
+      <div class="fav-section-title">⭐ 즐겨찾기 <small>탭하면 다시 검색합니다</small></div>
+      <div id="fav-container"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottomnav">
+    <button class="nav-btn active" id="nav-camera" onclick="goView('camera',this)">
+      <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+      <span>카메라</span>
+    </button>
+    <button class="nav-btn" id="nav-search" onclick="goView('search',this)">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <span>검색</span>
+    </button>
+    <button class="nav-btn" id="nav-favorites" onclick="goView('favorites',this)">
+      <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+      <span>즐겨찾기</span>
+    </button>
+  </nav>
+</div>
+
+<canvas id="snap-canvas" style="display:none"></canvas>
 
 <script>
-    let currentData = { name: '', desc: '' };
-    let currentJsonInfo = null; 
+/* ── STATE ── */
+let currentInfo = null;
+let currentView = 'camera';
+let stream = null;
+let torchOn = false;
+let facingMode = 'environment';
 
-    window.onload = function() {
-        const savedKey = localStorage.getItem('gemini_api_key');
-        if(savedKey) { document.getElementById('api-key-input').value = savedKey; }
-        startCamera();
-        renderFavorites();
-    }
-    
-    function saveApiKey() {
-        const key = document.getElementById('api-key-input').value.trim();
-        localStorage.setItem('gemini_api_key', key);
-        alert('API Key가 기기 저장소에 안전하게 저장되었습니다.');
-    }
-    
-    function getApiKey() { return localStorage.getItem('gemini_api_key'); }
+/* ── INIT ── */
+window.onload = async () => {
+  const saved = localStorage.getItem('medscan_key');
+  if (saved) document.getElementById('api-key-input').value = saved;
+  await startCamera();
+  setTimeout(() => { document.getElementById('splash').classList.add('hide'); }, 1800);
+};
 
-    // 슬라이더 조절 시 글자 실시간 변경
-    function updateSpeedLabel(val) {
-        document.getElementById('speed-val').innerText = val + "배속";
-    }
+/* ── API KEY ── */
+function saveApiKey() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (!k) return alert('API Key를 입력해주세요.');
+  localStorage.setItem('medscan_key', k);
+  showToast('API Key 저장 완료 ✓');
+}
+function getKey() { return localStorage.getItem('medscan_key'); }
 
-    function navigate(viewName, element) {
-        window.speechSynthesis.cancel(); 
-        document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-        document.getElementById(`view-${viewName}`).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-        element.classList.add('active');
-        if(viewName === 'favorites') renderFavorites();
-    }
+/* ── SPEED ── */
+function updateSpeed(v) { document.getElementById('speed-val').textContent = v + '×'; }
 
-    const videoElement = document.getElementById('video-element');
-    async function startCamera() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-            videoElement.srcObject = stream;
-        } catch (err) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                videoElement.srcObject = stream;
-            } catch (err2) {}
-        }
-    }
+/* ── TOAST ── */
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position:'fixed', bottom:'80px', left:'50%', transform:'translateX(-50%) translateY(10px)',
+    background:'var(--accent)', color:'#000', padding:'9px 20px', borderRadius:'50px',
+    fontWeight:'700', fontSize:'0.85rem', zIndex:'9999', opacity:'0', transition:'0.3s', whiteSpace:'nowrap'
+  });
+  document.body.appendChild(t);
+  requestAnimationFrame(() => { t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; });
+  setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(), 300); }, 2200);
+}
 
-    const systemPrompt = `당신은 전문 약사 AI입니다. 요청하는 의약품을 분석하여 반드시 아래의 JSON 형식으로만 응답해주세요.
-    형식:
-    { "name": "약품명", "category": "효능 분류", "efficacy": "핵심 효능", "usage": "정확한 용법", "warning": "알레르기 반응 및 주의사항 (상세히)", "contraindications": ["병용 금기 약품 1", "병용 금기 약품 2"] }`;
+/* ── CAMERA ── */
+async function startCamera() {
+  try {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    const constraints = {
+      video: {
+        facingMode,
+        width: { ideal: 1920, min: 1280 },
+        height: { ideal: 1080, min: 720 },
+        frameRate: { ideal: 30 },
+        focusMode: 'continuous',
+        exposureMode: 'continuous',
+        whiteBalanceMode: 'continuous'
+      }
+    };
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+  } catch {
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } }); } catch { }
+  }
+  if (stream) document.getElementById('video-el').srcObject = stream;
+}
 
-    async function autoDetectModel(apiKey) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.error) throw new Error(`API 키 오류: ${data.error.message}`);
-        if (data.models && data.models.length > 0) {
-            const supported = data.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"));
-            let bestModel = supported.find(m => m.name.includes("flash")) || supported.find(m => m.name.includes("vision")) || supported[0]; 
-            return bestModel.name.replace("models/", "");
-        }
-        throw new Error("연결된 모델을 찾을 수 없습니다.");
-    }
+async function switchCamera() {
+  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  await startCamera();
+}
 
-    async function analyzeImageWithAI() {
-        const apiKey = getApiKey();
-        if(!apiKey) return alert('화면 상단에 API Key를 먼저 저장해주세요.');
-        window.speechSynthesis.cancel();
+async function toggleTorch() {
+  if (!stream) return;
+  const track = stream.getVideoTracks()[0];
+  try {
+    torchOn = !torchOn;
+    await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+    const btn = document.getElementById('btn-torch');
+    btn.classList.toggle('on', torchOn);
+    btn.textContent = torchOn ? '🔦' : '💡';
+  } catch { showToast('이 기기는 플래시를 지원하지 않습니다.'); torchOn = false; }
+}
 
-        document.getElementById('camera-loading').style.display = 'block';
-        document.getElementById('capture-btn').disabled = true;
+/* ── NAVIGATE ── */
+function goView(name, el) {
+  speechSynthesis.cancel();
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  currentView = name;
+  if (name === 'favorites') renderFav();
+}
 
-        const canvas = document.getElementById('hidden-canvas');
-        canvas.width = videoElement.videoWidth || 640;
-        canvas.height = videoElement.videoHeight || 480;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        
-        const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
-        
-        try {
-            const exactModelName = await autoDetectModel(apiKey);
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${exactModelName}:generateContent?key=${apiKey}`;
-            const payload = {
-                contents: [{ parts: [ { text: "이미지 속 의료품을 인식해서 정보를 제공해줘. " + systemPrompt }, { inlineData: { mimeType: "image/jpeg", data: base64Image } } ] }]
-            };
+/* ── LOADING ── */
+function showLoading(msg, sub) {
+  document.getElementById('loading-text').textContent = msg || '분석 중...';
+  document.getElementById('loading-sub').textContent = sub || '';
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
 
-            const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const result = await response.json();
-            if (result.error) throw new Error(result.error.message);
-            
-            const aiText = result.candidates[0].content.parts[0].text.trim();
-            const jsonMatch = aiText.match(/\{[\s\S]*\}/);
-            const drugInfo = JSON.parse(jsonMatch[0]);
-            displayData('cam', drugInfo);
-        } catch (err) {
-            alert("사진 인식 오류: " + err.message);
-        } finally {
-            document.getElementById('camera-loading').style.display = 'none';
-            document.getElementById('capture-btn').disabled = false;
-        }
-    }
+/* ── AI ── */
+const SYSTEM_PROMPT = `당신은 전문 약사 AI입니다. 요청 의약품 정보를 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 절대 포함하지 마세요.
+{"name":"약품명","category":"효능 분류","efficacy":"핵심 효능 상세","usage":"정확한 용법 용량","warning":"알레르기·부작용·주의사항 상세","contraindications":["병용금기1","병용금기2"]}`;
 
-    async function handleSearch(event) {
-        if (event && event.key && event.key !== 'Enter') return;
-        const apiKey = getApiKey();
-        if(!apiKey) return alert('화면 상단에 API Key를 먼저 저장해주세요.');
+async function getModel(key) {
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  const models = (d.models || []).filter(m => m.supportedGenerationMethods?.includes('generateContent'));
+  const best = models.find(m => m.name.includes('flash-2')) || models.find(m => m.name.includes('flash')) || models[0];
+  if (!best) throw new Error('사용 가능한 모델이 없습니다.');
+  return best.name.replace('models/', '');
+}
 
-        const query = document.getElementById('search-input').value;
-        if(!query.trim()) return;
-        window.speechSynthesis.cancel();
+async function callAI(key, parts) {
+  const model = await getModel(key);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+  const body = { contents: [{ parts }] };
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d.candidates[0].content.parts[0].text.trim();
+}
 
-        document.getElementById('search-loading').style.display = 'block';
-        document.getElementById('search-result').style.display = 'none';
+/* ── IMAGE ANALYZE ── */
+async function analyzeImage() {
+  const key = getKey();
+  if (!key) return alert('상단에 API Key를 먼저 저장해주세요.');
+  speechSynthesis.cancel();
 
-        try {
-            const exactModelName = await autoDetectModel(apiKey);
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${exactModelName}:generateContent?key=${apiKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: `'${query}' 에 대한 의약품 정보를 찾아줘. ` + systemPrompt }] }]
-            };
+  const video = document.getElementById('video-el');
+  const canvas = document.getElementById('snap-canvas');
+  canvas.width = video.videoWidth || 1280;
+  canvas.height = video.videoHeight || 720;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const b64 = canvas.toDataURL('image/jpeg', 0.95).split(',')[1];
 
-            const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const result = await response.json();
-            if (result.error) throw new Error(result.error.message);
-            
-            const aiText = result.candidates[0].content.parts[0].text.trim();
-            const jsonMatch = aiText.match(/\{[\s\S]*\}/);
-            const drugInfo = JSON.parse(jsonMatch[0]);
-            displayData('search', drugInfo);
-        } catch (err) {
-            alert("검색 오류: " + err.message);
-        } finally {
-            document.getElementById('search-loading').style.display = 'none';
-        }
-    }
+  const btn = document.getElementById('btn-capture');
+  btn.disabled = true;
+  showLoading('이미지 분석 중...', '최적 AI 모델 탐색 중');
 
-    function displayData(type, info) {
-        currentData = { name: info.name, desc: info.category };
-        currentJsonInfo = info; 
-        
-        let contrasHTML = '';
-        if(info.contraindications && info.contraindications.length > 0 && info.contraindications[0] !== "") {
-            info.contraindications.forEach(c => { contrasHTML += `<li>💊 ${c}</li>`; });
-        } else { contrasHTML = '<li>특이 병용 금기 사항 없음</li>'; }
+  try {
+    const parts = [
+      { text: '이미지 속 의약품을 인식하고 정보를 제공해줘. ' + SYSTEM_PROMPT },
+      { inlineData: { mimeType: 'image/jpeg', data: b64 } }
+    ];
+    const text = await callAI(key, parts);
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('AI 응답 형식 오류');
+    const info = JSON.parse(match[0]);
+    currentInfo = info;
+    renderDrugInfo('cam', info);
+  } catch (e) {
+    alert('인식 오류: ' + e.message);
+  } finally {
+    hideLoading();
+    btn.disabled = false;
+  }
+}
 
-        const htmlContent = `
-            <p style="color:#fff;"><strong>🏷️ 분류:</strong> ${info.category}</p>
-            <p style="color:#fff;"><strong>✨ 효능:</strong> ${info.efficacy}</p>
-            <p style="color:#fff;"><strong>🕒 용법:</strong> ${info.usage}</p>
-            <div class="warning-text">
-                🚨 알레르기 및 부작용 주의사항<br>
-                <span style="color:#fff; font-weight:normal;">${info.warning}</span>
-            </div>
-            <div class="contra-section">
-                <h4>⛔ 병용 금기 및 주의 의약품</h4>
-                <ul class="contra-list">${contrasHTML}</ul>
-            </div>
-        `;
-        
-        if(type === 'cam') {
-            document.getElementById('cam-res-name').innerHTML = `<strong>${info.name}</strong><br><span style="font-size:0.9rem; color:#aaa;">${info.category}</span>`;
-            document.getElementById('cam-res-manual').innerHTML = htmlContent;
-            document.getElementById('cam-star').innerText = checkSaved(info.name) ? "★" : "☆";
-            document.getElementById('cam-star').className = checkSaved(info.name) ? "btn-star saved" : "btn-star";
-        } else {
-            document.getElementById('search-res-title').innerText = info.name;
-            document.getElementById('search-res-manual').innerHTML = htmlContent;
-            document.getElementById('search-star').innerText = checkSaved(info.name) ? "★" : "☆";
-            document.getElementById('search-star').className = checkSaved(info.name) ? "btn-star saved" : "btn-star";
-            document.getElementById('search-result').style.display = 'block';
-        }
-    }
+/* ── SEARCH ── */
+async function doSearch() {
+  const key = getKey();
+  if (!key) return alert('상단에 API Key를 먼저 저장해주세요.');
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  speechSynthesis.cancel();
 
-    // 🔊 음성 읽어주기
-    function speakCurrentInfo() {
-        if (!currentJsonInfo || !currentJsonInfo.name) return alert("읽어드릴 의약품 정보가 없습니다.");
-        window.speechSynthesis.cancel();
+  document.getElementById('search-result-wrap').style.display = 'none';
+  document.getElementById('search-empty').style.display = 'none';
+  showLoading('의약품 정보 검색 중...', '"' + q + '" 분석 중');
 
-        let speechText = `조회하신 약품명은 ${currentJsonInfo.name} 입니다. 효능은 ${currentJsonInfo.efficacy} 입니다. 용법은 ${currentJsonInfo.usage} 입니다. 주의사항입니다. ${currentJsonInfo.warning} `;
-        if (currentJsonInfo.contraindications && currentJsonInfo.contraindications.length > 0 && currentJsonInfo.contraindications[0] !== "") {
-            speechText += `금기 약품은 ${currentJsonInfo.contraindications.join(', ')} 입니다.`;
-        }
+  try {
+    const text = await callAI(key, [{ text: `'${q}' 의약품 정보를 찾아줘. ` + SYSTEM_PROMPT }]);
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('AI 응답 형식 오류');
+    const info = JSON.parse(match[0]);
+    currentInfo = info;
+    renderDrugInfo('search', info);
+    document.getElementById('search-result-wrap').style.display = 'flex';
+  } catch (e) {
+    alert('검색 오류: ' + e.message);
+    document.getElementById('search-empty').style.display = 'block';
+  } finally {
+    hideLoading();
+  }
+}
 
-        const utterance = new SpeechSynthesisUtterance(speechText);
-        utterance.lang = 'ko-KR';
-        
-        const selectedSpeed = parseFloat(document.getElementById('tts-speed').value);
-        utterance.rate = selectedSpeed; 
-        
-        window.speechSynthesis.speak(utterance);
-    }
+/* ── RENDER DRUG INFO ── */
+function buildDetailHTML(info) {
+  const contras = (info.contraindications || []).filter(c => c);
+  const contraHTML = contras.length
+    ? contras.map(c => `<li>⛔ ${c}</li>`).join('')
+    : '<li>특이 병용 금기 사항 없음</li>';
 
-    function getFavorites() { return JSON.parse(localStorage.getItem('med_favorites')) || []; }
-    function checkSaved(name) { return getFavorites().some(item => item.name === name); }
-    
-    function toggleFavoriteFromCurrent(type) {
-        if(!currentData.name) return;
-        toggleFavorite(currentData.name, currentData.desc, document.getElementById(`${type}-star`));
-    }
-    
-    function toggleFavorite(name, desc, btnElement) {
-        let favorites = getFavorites();
-        const exists = favorites.findIndex(item => item.name === name);
-        if (exists > -1) {
-            favorites.splice(exists, 1);
-            btnElement.classList.remove('saved');
-            btnElement.innerText = "☆";
-        } else {
-            favorites.push({ name: name, desc: desc });
-            btnElement.classList.add('saved');
-            btnElement.innerText = "★";
-        }
-        localStorage.setItem('med_favorites', JSON.stringify(favorites));
-    }
-    
-    function renderFavorites() {
-        const container = document.getElementById('fav-list-container');
-        const favorites = getFavorites();
-        container.innerHTML = '';
-        if(favorites.length === 0) {
-            container.innerHTML = '<p style="color:#aaa; text-align:center; margin-top:30px; line-height:1.6;">저장된 의약품이 없습니다.<br>검색이나 스캔 후 별(☆) 아이콘을 눌러 추가해보세요!</p>';
-            return;
-        }
-        favorites.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'fav-item';
-            div.innerHTML = `
-                <div class="fav-item-content" onclick="searchFromFavorite('${item.name}')">
-                    <h3 style="color:#4CAF50;">${item.name}</h3>
-                    <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">${item.desc}</p>
-                </div>
-                <div class="fav-item-actions">
-                    <button class="btn-remove" onclick="removeFavorite('${item.name}')">삭제</button>
-                </div>
-            `;
-            container.appendChild(div);
-        });
-    }
+  return `
+    <div class="info-row"><div class="info-label">분류</div><div class="info-value"><span class="pill-tag">${info.category}</span></div></div>
+    <div class="info-row"><div class="info-label">효능</div><div class="info-value">${info.efficacy}</div></div>
+    <div class="info-row"><div class="info-label">용법</div><div class="info-value">${info.usage}</div></div>
+    <div class="warning-box">
+      <div class="w-title">🚨 주의사항 / 부작용</div>
+      <p>${info.warning}</p>
+    </div>
+    <div style="margin-top:12px">
+      <div style="font-size:0.82rem;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">⚠ 병용 금기 약품</div>
+      <ul class="contra-list">${contraHTML}</ul>
+    </div>
+  `;
+}
 
-    function searchFromFavorite(medName) {
-        navigate('search', document.getElementById('nav-search'));
-        document.getElementById('search-input').value = medName;
-        handleSearch({ key: 'Enter' });
-    }
-    
-    function removeFavorite(name) {
-        let favorites = getFavorites();
-        favorites = favorites.filter(item => item.name !== name);
-        localStorage.setItem('med_favorites', JSON.stringify(favorites));
-        renderFavorites();
-        if(currentData.name === name) {
-            if(document.getElementById('cam-star')) { document.getElementById('cam-star').innerText = "☆"; document.getElementById('cam-star').classList.remove('saved'); }
-            if(document.getElementById('search-star')) { document.getElementById('search-star').innerText = "☆"; document.getElementById('search-star').classList.remove('saved'); }
-        }
-    }
+function renderDrugInfo(type, info) {
+  const html = buildDetailHTML(info);
+  const isSaved = checkSaved(info.name);
+
+  if (type === 'cam') {
+    document.getElementById('cam-drug-name').innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:1.15rem;font-weight:800;color:var(--text)">${info.name}</span>
+        <span class="pill-tag">${info.category}</span>
+      </div>`;
+    const card = document.getElementById('cam-detail-card');
+    const body = document.getElementById('cam-detail-body');
+    card.style.display = 'block';
+    body.innerHTML = `<div style="padding:16px 18px">${html}</div>`;
+    body.style.maxHeight = body.scrollHeight + 'px';
+    card.classList.add('expanded');
+    updateStarBtn('cam-star', isSaved);
+  } else {
+    document.getElementById('search-drug-name').textContent = info.name;
+    document.getElementById('search-detail-body').innerHTML = html;
+    updateStarBtn('search-star', isSaved);
+  }
+}
+
+/* ── EXPAND / COLLAPSE ── */
+function toggleExpand(card) {
+  const body = card.querySelector('.collapsible-body');
+  if (!body) return;
+  const isExpanded = card.classList.toggle('expanded');
+  if (isExpanded) {
+    body.classList.remove('collapsed');
+    body.style.maxHeight = body.scrollHeight + 'px';
+  } else {
+    body.style.maxHeight = body.scrollHeight + 'px';
+    requestAnimationFrame(() => { body.classList.add('collapsed'); body.style.maxHeight = '0'; });
+  }
+}
+
+/* ── MODAL ZOOM ── */
+function openModal(type) {
+  if (!currentInfo) return;
+  document.getElementById('modal-title').textContent = currentInfo.name;
+  document.getElementById('modal-body').innerHTML = buildDetailHTML(currentInfo);
+  document.getElementById('modal-zoom').classList.add('show');
+}
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-zoom')) document.getElementById('modal-zoom').classList.remove('show');
+}
+
+/* ── TTS ── */
+function speakInfo() {
+  if (!currentInfo) return showToast('읽을 정보가 없습니다.');
+  speechSynthesis.cancel();
+  const i = currentInfo;
+  let text = `약품명은 ${i.name}입니다. 효능은 ${i.efficacy}입니다. 용법은 ${i.usage}입니다. 주의사항입니다. ${i.warning}.`;
+  const c = (i.contraindications || []).filter(x => x);
+  if (c.length) text += ` 병용 금기 약품은 ${c.join(', ')}입니다.`;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ko-KR';
+  u.rate = parseFloat(document.getElementById('tts-speed').value);
+  speechSynthesis.speak(u);
+  showToast('🔊 읽기 시작');
+}
+
+/* ── FAVORITES ── */
+function getFavs() { return JSON.parse(localStorage.getItem('medscan_favs') || '[]'); }
+function checkSaved(name) { return getFavs().some(f => f.name === name); }
+function updateStarBtn(id, saved) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.textContent = saved ? '★' : '☆';
+  btn.classList.toggle('saved', saved);
+}
+function toggleFav(type) {
+  if (!currentInfo) return;
+  const name = currentInfo.name, cat = currentInfo.category;
+  let favs = getFavs();
+  const idx = favs.findIndex(f => f.name === name);
+  if (idx > -1) { favs.splice(idx, 1); showToast('즐겨찾기에서 제거했습니다.'); }
+  else { favs.push({ name, cat }); showToast('⭐ 즐겨찾기에 추가했습니다!'); }
+  localStorage.setItem('medscan_favs', JSON.stringify(favs));
+  updateStarBtn('cam-star', checkSaved(name));
+  updateStarBtn('search-star', checkSaved(name));
+}
+
+function renderFav() {
+  const favs = getFavs();
+  const c = document.getElementById('fav-container');
+  if (!favs.length) {
+    c.innerHTML = `<div class="empty-state"><div class="icon">⭐</div><p>저장된 즐겨찾기가 없습니다.<br>검색이나 스캔 후 별(☆)을 눌러 추가하세요.</p></div>`;
+    return;
+  }
+  c.innerHTML = favs.map(f => `
+    <div class="fav-item">
+      <div class="fav-item-main" onclick="searchFromFav('${f.name}')">
+        <h3>${f.name}</h3>
+        <p>${f.cat || ''}</p>
+      </div>
+      <button class="btn-del" onclick="delFav('${f.name}')">삭제</button>
+    </div>
+  `).join('');
+}
+
+function delFav(name) {
+  let favs = getFavs().filter(f => f.name !== name);
+  localStorage.setItem('medscan_favs', JSON.stringify(favs));
+  renderFav();
+  updateStarBtn('cam-star', checkSaved(name));
+  updateStarBtn('search-star', checkSaved(name));
+  showToast('삭제 완료');
+}
+
+function searchFromFav(name) {
+  goView('search', document.getElementById('nav-search'));
+  document.getElementById('search-input').value = name;
+  doSearch();
+}
 </script>
 </body>
 </html>
